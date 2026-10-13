@@ -1,7 +1,7 @@
 # FedMaint-AI
 ### Privacy-Preserving Predictive Maintenance with Federated Learning, Knowledge Graphs, and LLMs
 
-> **Status:** Planning and reproducible dataset setup. No predictive model, federated pipeline, privacy mechanism, knowledge graph, or LLM explanation system has been implemented or evaluated yet.
+> **Status:** Planning and dataset verification. Both research datasets are currently checked into this public repository; no predictive model, federated pipeline, privacy mechanism, knowledge graph, or LLM explanation system has been implemented or evaluated yet.
 >
 > This repository is a **research prototype under development**, not a production or safety-certified predictive-maintenance tool.
 
@@ -23,7 +23,7 @@ The repository currently includes **documentation**, a **dataset manifest**, and
 | --- | --- | --- |
 | Project description and architecture | Documented draft | This README and the proposed Mermaid diagram |
 | Dataset provenance and checksums | Available | [`data/manifest.json`](data/manifest.json) |
-| Local dataset preparation | Available | [`scripts/prepare_data.py`](scripts/prepare_data.py), for known source ZIPs |
+| Dataset verification | Available | [`scripts/prepare_data.py`](scripts/prepare_data.py) checks committed datasets directly; original ZIP extraction remains optional |
 | Data exploration, cleaning, labeling | Not started | To be designed and implemented |
 | Centralized/local ML baselines | Not started | Planned experiments only |
 | Federated training and privacy | Not started | Methods proposed, not implemented |
@@ -34,33 +34,46 @@ The repository currently includes **documentation**, a **dataset manifest**, and
 
 ### Requirements
 
-- **Python 3.9+** (the current data-preparation helper uses the Python standard library; it does not require a `pip install`).
-- **Git** for cloning the repository.
-- Download the source ZIP archives separately from [Azure (Kaggle)](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance) and [NASA C-MAPSS](https://data.nasa.gov/dataset/cmapss-jet-engine-simulated-data). Kaggle may require sign-in.
+- **Python 3.9+** and **Git**. Dataset verification uses only Python's standard library.
+- **No additional data download is required** after cloning the complete repository; both datasets are currently committed. The clone includes roughly 120 MB of dataset files.
 
-### Clone and prepare datasets
+### Clone and verify the uploaded datasets
 
 ```bash
 git clone https://github.com/momen320230161-hub/FedMaint-AI.git
 cd FedMaint-AI
 
-# Use the paths to your locally downloaded ZIP archives.
-# This single-line command also works in terminals without Bash line continuation.
-python scripts/prepare_data.py --azure-zip "/path/to/archive (2).zip" --nasa-zip "/path/to/CMAPSSData.zip"
-
-# Once BOTH datasets are prepared, verify their extracted files:
+# Verify both committed datasets directly; do not extract any ZIP:
 python scripts/prepare_data.py --verify-only
+
+# Or verify one dataset:
+python scripts/prepare_data.py --verify-only --dataset azure
+python scripts/prepare_data.py --verify-only --dataset nasa
 ```
 
-**What this does:** Extracts the expected dataset files to `data/raw/azure/` and `data/raw/nasa/`, then checks their record counts and SHA-256 hashes against [the manifest](data/manifest.json). These folders are ignored by Git. The helper does **not** download datasets from Kaggle or NASA and does **not** start model training.
+The script automatically checks the following current paths:
 
-**Important limitations of the current helper:**
+| Dataset | Tracked path | Expected files |
+| --- | --- | --- |
+| Azure | [`data/Azure Data/`](data/Azure%20Data) | 5 CSV files |
+| NASA C-MAPSS | [`data/CMAPSSData/`](data/CMAPSSData) | 12 TXT data files, plus source README and PDF |
 
-- Archive verification is intentionally strict: it expects the **exact ZIP bytes** listed in the manifest. A correctly repackaged or newer source ZIP may be rejected despite having valid data. Review the source and file hashes rather than removing integrity checks blindly.
-- You may extract **one dataset at a time** by passing only its ZIP flag; `--verify-only` currently checks **both datasets**, so run it only after preparing both.
-- On Windows, replace the example paths with local Windows paths. The command is one line to avoid shell-specific line-continuation syntax.
+For each expected data file, the script checks its **row count** and **accepted exact SHA-256 hash** against [`data/manifest.json`](data/manifest.json). It exits with a nonzero status if any file is missing or altered.
 
-**Next step:** Define the Azure classification labels and leakage-safe split before building a baseline model. A training command will be documented **once training code exists**.
+### Optional: prepare original ZIP archives locally
+
+You **do not need** these commands when the tracked folders above exist. If you have the originally supplied ZIPs and prefer a local extraction:
+
+```bash
+python scripts/prepare_data.py --azure-zip "/path/to/archive (2).zip"
+python scripts/prepare_data.py --nasa-zip "/path/to/CMAPSSData.zip"
+```
+
+ZIP extraction uses the original archive hashes in the manifest and writes to Git-ignored `data/raw/azure/` and `data/raw/nasa/`. `--verify-only` prefers the tracked folders and falls back to `data/raw/` if those are absent.
+
+**Checksum note:** Azure CSVs in the original ZIP use CRLF line endings, while those committed to Git use LF. Each Azure file has a source `sha256` and a verified `repository_sha256`; either exactly listed hash is accepted, but arbitrary file changes are not. NASA TXT data files match their original hashes.
+
+**Not yet implemented:** This script does not preprocess data, train models, or run federated learning.
 
 ## Project objectives
 
@@ -158,39 +171,36 @@ A proposed task is **RUL regression** in operating cycles. The NASA test labels 
 
 **Note:** C-MAPSS does not contain the same explicit maintenance-action history as Azure; it should not be used to invent component-level maintenance explanations.
 
-## Dataset availability and redistribution
+## Dataset availability, layout, and redistribution
 
-**Raw dataset files are intentionally not tracked in this public repository.** The supplied archives were integrity-checked locally, and their file hashes and record counts are recorded in [`data/manifest.json`](data/manifest.json). This enables reproducible local preparation without claiming that the datasets may be republished.
-
-- The Kaggle Azure dataset currently lists its **license as “Unknown.”**
-- The NASA dataset resource page does **not specify a license**.
-- A publicly accessible download is **not the same as an explicit grant of redistribution rights**.
-- Large raw files also create Git repository maintenance and hosting problems. GitHub recommends keeping individual objects small and enforces a 100 MiB single-object limit.
-
-**Download from the original publishers** and check the applicable terms before redistributing any source files. This repository's own future code license, if added, will not automatically apply to third-party data.
-
-### Local data layout
-
-After following the [Quick start](#quick-start), the expected local layout is:
+**Both datasets are currently tracked in this public repository** under `data/Azure Data/` and `data/CMAPSSData/`. Earlier documentation that called raw data untracked is now outdated. The alternative `data/raw/` location remains Git-ignored for optional local extraction.
 
 ```text
 data/
-├── manifest.json             # Tracked: expected filenames, counts, SHA-256
-├── raw/                      # Local only, ignored by Git
-│   ├── azure/
-│   │   ├── PdM_telemetry.csv
-│   │   ├── PdM_errors.csv
-│   │   ├── PdM_maint.csv
-│   │   ├── PdM_failures.csv
-│   │   └── PdM_machines.csv
-│   └── nasa/
-│       ├── train_FD001.txt ... train_FD004.txt
-│       ├── test_FD001.txt  ... test_FD004.txt
-│       └── RUL_FD001.txt   ... RUL_FD004.txt
-└── processed/                # Future generated features; also ignored
+├── Azure Data/                # Tracked: Azure CSV files
+│   ├── PdM_telemetry.csv
+│   ├── PdM_errors.csv
+│   ├── PdM_maint.csv
+│   ├── PdM_failures.csv
+│   └── PdM_machines.csv
+├── CMAPSSData/                # Tracked: NASA TXT files and original docs
+│   ├── train_FD001.txt ... train_FD004.txt
+│   ├── test_FD001.txt  ... test_FD004.txt
+│   ├── RUL_FD001.txt   ... RUL_FD004.txt
+│   ├── readme.txt
+│   └── Damage Propagation Modeling.pdf
+├── manifest.json             # Tracked: hashes, sources, row counts
+└── raw/                      # Optional local extraction; ignored by Git
+    ├── azure/
+    └── nasa/
 ```
 
-The script verifies each supplied ZIP against its expected **SHA-256** and validates every extracted source file's hash and record count. If your download is a different upstream revision or is repackaged differently, a ZIP-level mismatch does not by itself mean corruption: review the provenance and update the manifest only after independent validation.
+**Redistribution and repository-size considerations:**
+
+- Public availability is not itself proof of permission to republish third-party datasets. The Azure Kaggle listing has shown an **unknown license**, and the NASA resource page does not clearly state a dataset license. Verify the applicable permissions.
+- The tracked Azure telemetry CSV is about **79 MB**, and large Git blobs can make cloning and history maintenance difficult.
+- Removing a tracked file in a future commit does not remove earlier Git history. If redistribution is not authorized, addressing already published copies/history is a separate repository decision.
+- Manifest hashes demonstrate file integrity, **not** redistribution permission.
 
 ## Implementation roadmap
 
@@ -239,6 +249,8 @@ FedMaint-AI/
 ├── README.md
 ├── .gitignore
 ├── data/
+│   ├── Azure Data/              # Current: tracked CSVs
+│   ├── CMAPSSData/              # Current: tracked NASA files
 │   └── manifest.json
 ├── scripts/
 │   └── prepare_data.py
@@ -248,7 +260,7 @@ FedMaint-AI/
 └── docs/                    # Planned: design decisions and project report
 ```
 
-**Current files:** `README.md`, `.gitignore`, `data/manifest.json`, and `scripts/prepare_data.py`. Other directories shown above are **proposed**, not present or implemented.
+**Current files:** `README.md`, `.gitignore`, `data/manifest.json`, `scripts/prepare_data.py`, and the uploaded datasets under `data/Azure Data/` and `data/CMAPSSData/`. The `src/`, `experiments/`, `tests/`, and `docs/` directories shown above are **proposed**, not implemented.
 
 ## Research questions
 
@@ -261,7 +273,7 @@ FedMaint-AI/
 ## Reproducibility and contribution notes
 
 - Develop features on separate branches and use pull requests to discuss experimental changes.
-- Keep raw datasets, trained weights, credentials, and generated outputs out of Git; review `.gitignore` before adding artifacts.
+- Do not add further raw datasets, trained weights, secrets, or generated output to Git without reviewing redistribution rights and repository-size impacts. Existing raw datasets require a separate permission review.
 - Record preprocessing choices, split definitions, client allocations, random seeds, hyperparameters, dataset versions, and environment details for each experiment.
 - Avoid sharing evaluation data with training clients or fitting normalization on held-out factory data. Assess potential privacy leakage from both model updates and retrieved KG evidence.
 - Do not claim accuracy gains, privacy guarantees, or causal explanations until there is reproducible evidence. Report unsuccessful experiments and limitations too.
