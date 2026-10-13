@@ -1,0 +1,83 @@
+{
+  "notes": "SHA-256 hashes and row counts were calculated from the two ZIP files uploaded by the project team. These metadata do not grant rights to redistribute raw data.",
+  "azure": {
+    "source": "https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance",
+    "archive_sha256": "7575444d4d605b1f7155ab937cf541243afe07fce1afba998bf4195e8e84e1eb",
+    "files": {
+      "PdM_telemetry.csv": {
+        "rows": 876100,
+        "sha256": "d957f3c45bb83416b716600da8cffd72f4b6961db89867d9696ad19f7cb1bd4e"
+      },
+      "PdM_errors.csv": {
+        "rows": 3919,
+        "sha256": "9c2a2a010ad77227e2bb0c94e7971bca78810790ddd1f28a8bee4f12c2f62370"
+      },
+      "PdM_maint.csv": {
+        "rows": 3286,
+        "sha256": "481ed4e155f609e6ca6130754d2c035453093902a507cce5b3f3e235995f1db6"
+      },
+      "PdM_failures.csv": {
+        "rows": 761,
+        "sha256": "0c6c31a4fd52ef2df95ad7c44e8b0c8c32917bcef29ba5a1ba3ba45531ded3b7"
+      },
+      "PdM_machines.csv": {
+        "rows": 100,
+        "sha256": "5e8e1571c4999bf88abb7cae3925964c218d946fe851a9a100bb3d19330652bc"
+      }
+    }
+  },
+  "nasa": {
+    "source": "https://data.nasa.gov/dataset/cmapss-jet-engine-simulated-data",
+    "archive_sha256": "74bef434a34db25c7bf72e668ea4cd52afe5f2cf8e44367c55a82bfd91a5a34f",
+    "files": {
+      "train_FD001.txt": {
+        "rows": 20631,
+        "sha256": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8"
+      },
+      "test_FD001.txt": {
+        "rows": 13096,
+        "sha256": "3cda7109ce17bafb5443f2ac926cfcf88154b941b8c4cf95eb55d1ddd6f52851"
+      },
+      "RUL_FD001.txt": {
+        "rows": 100,
+        "sha256": "a19c8ec94931949d0485bdc35118206e9c81c4547b422efb9cf86f4ceddbceca"
+      },
+      "train_FD002.txt": {
+        "rows": 53759,
+        "sha256": "dac6c4dbc4e7c1bdeb5747da3d313d05c395bb99801b44a002b26a2ba13d788f"
+      },
+      "test_FD002.txt": {
+        "rows": 33991,
+        "sha256": "de7b5bf7e998a985c378488480528b7c02cff1406a46740def362dda8d9b4e02"
+      },
+      "RUL_FD002.txt": {
+        "rows": 259,
+        "sha256": "c851dd96a6ea6998d3c4a8f834d3c8013aa90e93a6ed950dc826ad0655b2906b"
+      },
+      "train_FD003.txt": {
+        "rows": 24720,
+        "sha256": "2abbe9968cc5e8eb091980f51b20f62bb4127336d3482cb52071d53bf23329e2"
+      },
+      "test_FD003.txt": {
+        "rows": 16596,
+        "sha256": "299babd63c8d987cef079c4a425429f33b3a34797d803bbe2ad48c29dbd0d790"
+      },
+      "RUL_FD003.txt": {
+        "rows": 100,
+        "sha256": "df1e0566306b174a2de41c67a3e7a51877889598b78643fc3e5685259091b7cb"
+      },
+      "train_FD004.txt": {
+        "rows": 61249,
+        "sha256": "27ef6160b6a1dcb2613a88de9c239f763b223f02cdc41dc5cdedc5dc189b6218"
+      },
+      "test_FD004.txt": {
+        "rows": 41214,
+        "sha256": "1dc675fff0624bac10786927c6715b37d1297657137400d2b1a3138d777a3ba5"
+      },
+      "RUL_FD004.txt": {
+        "rows": 248,
+        "sha256": "196b836b85a95ac7fdbbf29c5fdf1657382eafa445644d114ffaaf50dc2975e1"
+      }
+    }
+  }
+}
