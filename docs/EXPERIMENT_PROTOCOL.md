@@ -1,6 +1,6 @@
 # Experiment Protocol — Draft
 
-> **Not finalized:** This file separates requirements from proposed experimental choices. No final split, labels or metric scores exist yet.
+> **Not finalized:** This file separates requirements from proposed experimental choices. No final split, labels or metric scores exist yet. See the detailed Phase 1 [data flow](DATA_FLOW.md) and [model design](MODEL_DESIGN.md); their 48-hour/30-cycle windows and GRU are **candidates**, not finalized choices.
 
 ## 1. Data tasks
 
