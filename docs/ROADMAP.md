@@ -54,6 +54,6 @@ A phase is complete only when **code/artefacts, validation, and written results*
 
 ## Team workflow
 
-Use a branch and pull request per deliverable, put configurations in \`configs/\`, store experiment descriptions in \`experiments/\`, and add automated checks to \`tests/\`. Track design changes in [DECISIONS.md](DECISIONS.md).
+Use a branch and pull request per deliverable, put configurations in `configs/`, store experiment descriptions in `experiments/`, and add automated checks to `tests/`. Track design changes in [DECISIONS.md](DECISIONS.md).
 
 **References:** [Project README](../README.md), [architecture](ARCHITECTURE.md), [experiment protocol](EXPERIMENT_PROTOCOL.md).
