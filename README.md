@@ -21,7 +21,7 @@ The repository now includes **a documented project scaffold**, dataset files and
 
 | Area | Status | What's available now |
 | --- | --- | --- |
-| Project description and architecture | Documented draft | This README, [architecture](docs/ARCHITECTURE.md), and proposed Mermaid diagram |
+| Project description and architecture | Phase 1 draft | This README, [architecture](docs/ARCHITECTURE.md), [data flow](docs/DATA_FLOW.md), and [model design](docs/MODEL_DESIGN.md); choices still await review |
 | Repository scaffold and phase plan | Set up | `src/fedmaint/`, `configs/`, `experiments/`, `tests/`, and [`docs/ROADMAP.md`](docs/ROADMAP.md) (no functional pipeline yet) |
 | Dataset provenance and checksums | Available | [`data/manifest.json`](data/manifest.json) |
 | Dataset verification | Available | [`scripts/prepare_data.py`](scripts/prepare_data.py) checks committed datasets directly; original ZIP extraction remains optional |
@@ -271,6 +271,8 @@ FedMaint-AI/
 └── docs/
     ├── ROADMAP.md
     ├── ARCHITECTURE.md
+    ├── DATA_FLOW.md
+    ├── MODEL_DESIGN.md
     ├── EXPERIMENT_PROTOCOL.md
     └── DECISIONS.md
 ```
@@ -280,6 +282,8 @@ FedMaint-AI/
 ### Project working documents
 
 - [Phases and completion criteria](docs/ROADMAP.md)
+- **[Phase 1 data flow and client/holdout design](docs/DATA_FLOW.md)**
+- **[Phase 1 model architecture (GRU candidate)](docs/MODEL_DESIGN.md)**
 - [Architecture and privacy boundaries](docs/ARCHITECTURE.md)
 - [Experimental protocol and leakage rules](docs/EXPERIMENT_PROTOCOL.md)
 - [Open design decisions](docs/DECISIONS.md)
