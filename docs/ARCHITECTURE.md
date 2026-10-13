@@ -6,13 +6,13 @@
 
 | Component | Planned package | Receives | Produces |
 | --- | --- | --- | --- |
-| Data loaders / validation / splits | \`src/fedmaint/data/\` | Azure tables or NASA engine sequences | Validated local features, labels, split metadata |
-| Predictive models | \`src/fedmaint/models/\` | Local time-series windows | Failure risk / RUL and model parameters |
-| Federated coordinator + clients | \`src/fedmaint/federated/\` | Selected client updates | Aggregated model parameters, round metrics |
-| Privacy mechanism | \`src/fedmaint/privacy/\` | Updates or aggregation messages | Protected messages, privacy/overhead metrics |
-| KG builder / retrieval | \`src/fedmaint/knowledge_graph/\` | Local machine, error, component, maintenance records | Provenance-tagged factual evidence |
-| Explanation generator | \`src/fedmaint/explainability/\` | Prediction, relevant evidence | Grounded text, referenced facts, uncertainty |
-| Evaluation | \`src/fedmaint/evaluation/\` | Predictions, targets, evidence, run metadata | Reproducible metrics and ablations |
+| Data loaders / validation / splits | `src/fedmaint/data/` | Azure tables or NASA engine sequences | Validated local features, labels, split metadata |
+| Predictive models | `src/fedmaint/models/` | Local time-series windows | Failure risk / RUL and model parameters |
+| Federated coordinator + clients | `src/fedmaint/federated/` | Selected client updates | Aggregated model parameters, round metrics |
+| Privacy mechanism | `src/fedmaint/privacy/` | Updates or aggregation messages | Protected messages, privacy/overhead metrics |
+| KG builder / retrieval | `src/fedmaint/knowledge_graph/` | Local machine, error, component, maintenance records | Provenance-tagged factual evidence |
+| Explanation generator | `src/fedmaint/explainability/` | Prediction, relevant evidence | Grounded text, referenced facts, uncertainty |
+| Evaluation | `src/fedmaint/evaluation/` | Predictions, targets, evidence, run metadata | Reproducible metrics and ablations |
 
 ## Proposed flow
 
@@ -38,7 +38,7 @@ Privacy technique and deployment threat model are **not yet selected**. Model up
 
 ## Distinct tasks, common abstractions
 
-**Azure:** time-indexed telemetry and linked errors, maintenance and failures; candidate label \`failure_within_24h\`, provisional. Event joins use only timestamps at or before each prediction cutoff. Stronger contextual evidence exists for the KG, but error/component codes do **not** automatically establish causality.
+**Azure:** time-indexed telemetry and linked errors, maintenance and failures; candidate label `failure_within_24h`, provisional. Event joins use only timestamps at or before each prediction cutoff. Stronger contextual evidence exists for the KG, but error/component codes do **not** automatically establish causality.
 
 **NASA:** run-to-failure engine sequences, operational settings and sensors; target RUL in cycles. The official per-test-engine RUL label describes the endpoint of its observed test trajectory. C-MAPSS lacks Azure-style explicit maintenance actions.
 
@@ -48,10 +48,10 @@ Shared code can include a dataset interface, modeling/training loops, metric col
 
 A future prediction result should contain at least:
 
-- \`dataset\`, \`client_id\`, \`asset_id\`, \`prediction_time_or_cycle\`
-- \`task\` (\`failure_risk\` or \`rul\`), \`model_version\`, \`prediction\`, \`units\`
-- \`evidence_ids\` and \`evidence_sources\` from the local KG (if supported)
-- \`explanation\`, \`limitations\`, \`candidate_actions\` only where justified
+- `dataset`, `client_id`, `asset_id`, `prediction_time_or_cycle`
+- `task` (`failure_risk` or `rul`), `model_version`, `prediction`, `units`
+- `evidence_ids` and `evidence_sources` from the local KG (if supported)
+- `explanation`, `limitations`, `candidate_actions` only where justified
 
 This describes a **proposed interface**, not a deployed or implemented JSON schema.
 
