@@ -2,6 +2,14 @@
 
 > This is a **design document**, not an implemented system. The project proposal requires federated training, privacy protection, a client-local maintenance knowledge graph, and LLM explanations grounded in facts.
 
+## Current Phase 1 detailed design
+
+The exact proposed ingestion, training, and local inference paths now have separate specifications:
+
+- [DATA_FLOW.md](DATA_FLOW.md): source tables, observed Azure model distribution, candidate 3-client + held-out-model protocol, leakage rules, graph-to-LLM evidence flow.
+- [MODEL_DESIGN.md](MODEL_DESIGN.md): candidate GRU backbone, independent classifier/RUL heads, matched FedAvg/FedProx/local/centralized comparisons.
+- [DECISIONS.md](DECISIONS.md): which values are still **candidates** rather than implemented or team-approved decisions.
+
 ## Components and ownership
 
 | Component | Planned package | Receives | Produces |
