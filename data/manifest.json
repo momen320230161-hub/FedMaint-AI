@@ -1,30 +1,36 @@
 {
-  "notes": "SHA-256 hashes and row counts were calculated from the two ZIP files uploaded by the project team. These metadata do not grant rights to redistribute raw data.",
+  "notes": "SHA-256 hashes and row counts were calculated from the team-supplied ZIP files. Azure's checked-in CSV files use LF instead of the original ZIPs' CRLF, so repository_sha256 lists their exact accepted GitHub hashes. These metadata do not grant raw-data redistribution rights.",
   "azure": {
     "source": "https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance",
     "archive_sha256": "7575444d4d605b1f7155ab937cf541243afe07fce1afba998bf4195e8e84e1eb",
     "files": {
       "PdM_telemetry.csv": {
         "rows": 876100,
-        "sha256": "d957f3c45bb83416b716600da8cffd72f4b6961db89867d9696ad19f7cb1bd4e"
+        "sha256": "d957f3c45bb83416b716600da8cffd72f4b6961db89867d9696ad19f7cb1bd4e",
+        "repository_sha256": "e580dec49d9088a3657b11a6f1b5dc99641af360597d0a6f0ea001aed1bcca3b"
       },
       "PdM_errors.csv": {
         "rows": 3919,
-        "sha256": "9c2a2a010ad77227e2bb0c94e7971bca78810790ddd1f28a8bee4f12c2f62370"
+        "sha256": "9c2a2a010ad77227e2bb0c94e7971bca78810790ddd1f28a8bee4f12c2f62370",
+        "repository_sha256": "585ce81fe71a71091f554045fd31de5fdfbda959150f2f76b26f8901c3b4e812"
       },
       "PdM_maint.csv": {
         "rows": 3286,
-        "sha256": "481ed4e155f609e6ca6130754d2c035453093902a507cce5b3f3e235995f1db6"
+        "sha256": "481ed4e155f609e6ca6130754d2c035453093902a507cce5b3f3e235995f1db6",
+        "repository_sha256": "a1e853a87d4f94badf92597b8665e7059e432272e6c9a1006f8476466ac4c639"
       },
       "PdM_failures.csv": {
         "rows": 761,
-        "sha256": "0c6c31a4fd52ef2df95ad7c44e8b0c8c32917bcef29ba5a1ba3ba45531ded3b7"
+        "sha256": "0c6c31a4fd52ef2df95ad7c44e8b0c8c32917bcef29ba5a1ba3ba45531ded3b7",
+        "repository_sha256": "6715d70a5fdd71196be4c98bbc9075438869270a0893f0b3b3f945dbef9bc59f"
       },
       "PdM_machines.csv": {
         "rows": 100,
-        "sha256": "5e8e1571c4999bf88abb7cae3925964c218d946fe851a9a100bb3d19330652bc"
+        "sha256": "5e8e1571c4999bf88abb7cae3925964c218d946fe851a9a100bb3d19330652bc",
+        "repository_sha256": "711f25f2e88ebd77ba1633f347edb0fd8144bfd7a1ff1ba30fe245e7e04dafb0"
       }
-    }
+    },
+    "repository_path": "data/Azure Data"
   },
   "nasa": {
     "source": "https://data.nasa.gov/dataset/cmapss-jet-engine-simulated-data",
@@ -78,6 +84,7 @@
         "rows": 248,
         "sha256": "196b836b85a95ac7fdbbf29c5fdf1657382eafa445644d114ffaaf50dc2975e1"
       }
-    }
+    },
+    "repository_path": "data/CMAPSSData"
   }
 }
