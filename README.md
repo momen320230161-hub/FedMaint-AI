@@ -24,32 +24,33 @@ The research objective is to evaluate **predictive performance, generalization t
 
 ## Proposed system architecture
 
-\`\`\`text
-Factory A                 Factory B                 Factory C
-┌────────────────┐       ┌────────────────┐        ┌────────────────┐
-│ Local dataset  │       │ Local dataset  │        │ Local dataset  │
-│ Local features │       │ Local features │        │ Local features │
-│ Local model    │       │ Local model    │        │ Local model    │
-│ Local KG       │       │ Local KG       │        │ Local KG       │
-└──────┬─────────┘       └──────┬─────────┘        └──────┬─────────┘
-       │ Protected model updates │                        │
-       └─────────────────────────┼────────────────────────┘
-                                 ▼
-                     ┌─────────────────────┐
-                     │ Federated server    │
-                     │ FedAvg / FedProx     │
-                     │ Aggregation + privacy│
-                     └──────────┬──────────┘
-                                │ Shared model parameters
-                                ▼
-                      Local inference at a factory
-                                │
-                 Prediction + local KG fact retrieval
-                                ▼
-                        Grounded LLM explanation
-                                ▼
-                   Risk / RUL + evidence + actions
-\`\`\`
+```mermaid
+flowchart TB
+    subgraph FACTORIES["Factory clients - raw data stays local"]
+        direction LR
+        A["Factory A: data, model, local KG"]
+        B["Factory B: data, model, local KG"]
+        C["Factory C: data, model, local KG"]
+    end
+    S["Federated server: FedAvg / FedProx + privacy mechanism"]
+    A -->|"Protected model updates"| S
+    B -->|"Protected model updates"| S
+    C -->|"Protected model updates"| S
+    S -->|"Updated model parameters"| A
+    S -->|"Updated model parameters"| B
+    S -->|"Updated model parameters"| C
+
+    subgraph INFERENCE["Inference and explanation at each factory"]
+        direction TB
+        D["Local sensor readings"] --> P["Local predictive model"]
+        P --> R["Failure risk or remaining useful life"]
+        K["Local maintenance knowledge graph"] --> Q["Retrieve supporting facts"]
+        R --> L["Grounded LLM explanation"]
+        Q --> L
+        L --> O["Prediction + evidence + candidate maintenance action"]
+    end
+    S -.->|"Shared model architecture and weights"| P
+```
 
 **Privacy boundary:** Telemetry and identifiable maintenance records are intended to remain at each client. Model updates are not inherently private; the design must evaluate possible leakage from both updates and any shared knowledge-graph content. The exact placement and threat model of the privacy mechanism will be documented before experiments.
 
@@ -63,11 +64,11 @@ The two datasets support **separate experiments**. Their labels, measurement sca
 
 | File | Records in the supplied archive | Purpose |
 | --- | ---: | --- |
-| \`PdM_telemetry.csv\` | 876,100 | Hourly voltage, rotation, pressure, vibration |
-| \`PdM_errors.csv\` | 3,919 | Machine error events |
-| \`PdM_maint.csv\` | 3,286 | Component replacement / maintenance history |
-| \`PdM_failures.csv\` | 761 | Component failure events |
-| \`PdM_machines.csv\` | 100 | Machine metadata, model, and age |
+| `PdM_telemetry.csv` | 876,100 | Hourly voltage, rotation, pressure, vibration |
+| `PdM_errors.csv` | 3,919 | Machine error events |
+| `PdM_maint.csv` | 3,286 | Component replacement / maintenance history |
+| `PdM_failures.csv` | 761 | Component failure events |
+| `PdM_machines.csv` | 100 | Machine metadata, model, and age |
 
 There are **100 simulated machines** across **four machine models** in the supplied data. A **proposed** task is to predict failure within the next 24 hours, with the prediction horizon and label definition fixed *before* model training. Train/validation/test splits must respect time and machine identities. Maintenance and failure records must never leak future information into predictors.
 
@@ -77,7 +78,7 @@ There are **100 simulated machines** across **four machine models** in the suppl
 
 **Source:** [NASA Open Data Portal: CMAPSS Jet Engine Simulated Data](https://data.nasa.gov/dataset/cmapss-jet-engine-simulated-data)
 
-C-MAPSS contains engine run-to-failure sequences with operational settings and sensor measurements. Each subset includes \`train_FD00x.txt\`, \`test_FD00x.txt\`, and \`RUL_FD00x.txt\`.
+C-MAPSS contains engine run-to-failure sequences with operational settings and sensor measurements. Each subset includes `train_FD00x.txt`, `test_FD00x.txt`, and `RUL_FD00x.txt`.
 
 | Subset | Training rows | Testing rows | Operating conditions | Fault modes |
 | --- | ---: | ---: | ---: | ---: |
@@ -92,7 +93,7 @@ A proposed task is **RUL regression** in operating cycles. The NASA test labels 
 
 ## Dataset availability and redistribution
 
-**Raw dataset files are intentionally not tracked in this public repository.** The supplied archives were integrity-checked locally, and their file hashes and record counts are recorded in [\`data/manifest.json\`](data/manifest.json). This enables reproducible local preparation without claiming that the datasets may be republished.
+**Raw dataset files are intentionally not tracked in this public repository.** The supplied archives were integrity-checked locally, and their file hashes and record counts are recorded in [`data/manifest.json`](data/manifest.json). This enables reproducible local preparation without claiming that the datasets may be republished.
 
 - The Kaggle Azure dataset currently lists its **license as “Unknown.”**
 - The NASA dataset resource page does **not specify a license**.
@@ -105,7 +106,7 @@ A proposed task is **RUL regression** in operating cycles. The NASA test labels 
 
 Requires **Python 3.9+**, using only the Python standard library.
 
-\`\`\`bash
+```bash
 git clone https://github.com/momen320230161-hub/FedMaint-AI.git
 cd FedMaint-AI
 
@@ -116,11 +117,11 @@ python scripts/prepare_data.py \
 
 # Recheck the unpacked datasets at any time:
 python scripts/prepare_data.py --verify-only
-\`\`\`
+```
 
 On success, the script extracts the expected files into:
 
-\`\`\`text
+```text
 data/
 ├── manifest.json             # Tracked: expected filenames, counts, SHA-256
 ├── raw/                      # Local only, ignored by Git
@@ -135,7 +136,7 @@ data/
 │       ├── test_FD001.txt  ... test_FD004.txt
 │       └── RUL_FD001.txt   ... RUL_FD004.txt
 └── processed/                # Future generated features; also ignored
-\`\`\`
+```
 
 The script verifies each supplied ZIP against its expected **SHA-256** and validates every extracted source file's hash and record count. If your download is a different upstream revision or is repackaged differently, a ZIP-level mismatch does not by itself mean corruption: review the provenance and update the manifest only after independent validation.
 
@@ -179,7 +180,7 @@ Use multiple random seeds and report variability. No numerical accuracy, privacy
 
 ## Planned repository structure
 
-\`\`\`text
+```text
 FedMaint-AI/
 ├── README.md
 ├── .gitignore
@@ -191,7 +192,7 @@ FedMaint-AI/
 ├── experiments/             # Planned: configs, evaluation, ablations
 ├── tests/                   # Planned: leakage and pipeline checks
 └── docs/                    # Planned: design decisions and project report
-\`\`\`
+```
 
 Only files already committed should be treated as implemented; the remaining folders show the intended organization.
 
