@@ -37,6 +37,14 @@ Phase 6 can progress **in parallel** with Phases 3–5 after the data and ontolo
 - Where meaningful, ablations for KG, privacy, and LLM, plus multiple runs and statistical testing.
 - Communication volume and impact of client count and heterogeneity.
 
+## Phase 1 working designs
+
+- [End-to-end data flow and proposed non-IID client split](DATA_FLOW.md)
+- [GRU-based architecture candidate and matched comparison plan](MODEL_DESIGN.md)
+- [Decision log with measured Azure machine/failure counts](DECISIONS.md)
+
+These are **design artefacts**, not approved implementation or model results. The checklist below remains open until reviewed and validated.
+
 ## Immediate tasks (Phase 1)
 
 - [ ] Choose and freeze the **Azure prediction unit** (machine or component), horizon, and sampling cadence.
