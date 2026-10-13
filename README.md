@@ -5,7 +5,7 @@
 >
 > This repository is a **research prototype under development**, not a production or safety-certified predictive-maintenance tool.
 
-**Navigate:** [Overview](#overview) · [Quick start](#quick-start) · [Status](#current-implementation-status) · [Architecture](#proposed-system-architecture) · [Datasets](#datasets) · [Technology choices](#proposed-technology-stack) · [Roadmap](#implementation-roadmap) · [Evaluation](#evaluation-plan) · [References](#sources-and-references)
+**Navigate:** [Overview](#overview) · [Quick start](#quick-start) · [Status](#current-implementation-status) · [Architecture](#proposed-system-architecture) · [Datasets](#datasets) · [Technology choices](#proposed-technology-stack) · [Roadmap](#implementation-roadmap) · [Evaluation](#evaluation-plan) · [Project plan](docs/ROADMAP.md) · [References](#sources-and-references)
 
 ## Overview
 
@@ -17,11 +17,12 @@ The research objective is to evaluate **predictive performance, generalization t
 
 ## Current implementation status
 
-The repository currently includes **documentation**, a **dataset manifest**, and a **local extraction/verification script**. Planned machine-learning components should not be mistaken for completed work.
+The repository now includes **a documented project scaffold**, dataset files and manifest, and a verification script. Python module stubs organize future work; they are **not implemented functionality**. For detailed phases and completion gates, see [PROJECT ROADMAP](docs/ROADMAP.md) and the [decision log](docs/DECISIONS.md).
 
 | Area | Status | What's available now |
 | --- | --- | --- |
-| Project description and architecture | Documented draft | This README and the proposed Mermaid diagram |
+| Project description and architecture | Documented draft | This README, [architecture](docs/ARCHITECTURE.md), and proposed Mermaid diagram |
+| Repository scaffold and phase plan | Set up | `src/fedmaint/`, `configs/`, `experiments/`, `tests/`, and [`docs/ROADMAP.md`](docs/ROADMAP.md) (no functional pipeline yet) |
 | Dataset provenance and checksums | Available | [`data/manifest.json`](data/manifest.json) |
 | Dataset verification | Available | [`scripts/prepare_data.py`](scripts/prepare_data.py) checks committed datasets directly; original ZIP extraction remains optional |
 | Data exploration, cleaning, labeling | Not started | To be designed and implemented |
@@ -204,10 +205,11 @@ data/
 
 ## Implementation roadmap
 
-The phases below are **planned work**. Current progress is tracked separately in [Current implementation status](#current-implementation-status).
+The phases below are **planned work**, with the repository scaffold established in Phase 0. Detailed deliverables and exit gates: [docs/ROADMAP.md](docs/ROADMAP.md); protocol: [docs/EXPERIMENT_PROTOCOL.md](docs/EXPERIMENT_PROTOCOL.md).
 
 | Phase | Work | Expected deliverable | Status |
 | --- | --- | --- | --- |
+| 0. Repository foundation | Set up folders, manifests, docs and working plan | Structure and phase definitions | Scaffold complete |
 | 1. Requirements and design | Prediction tasks, privacy boundary, ontology, experimental splits | Architecture + experiment specification | Draft in progress |
 | 2. Data preparation | EDA, missing-value checks, local normalization, windowing, leakage-safe labels | Reproducible feature pipeline | Not started |
 | 3. Baselines | Local and pooled centralized reference models | Comparable baseline results | Not started |
@@ -249,18 +251,38 @@ FedMaint-AI/
 ├── README.md
 ├── .gitignore
 ├── data/
-│   ├── Azure Data/              # Current: tracked CSVs
-│   ├── CMAPSSData/              # Current: tracked NASA files
+│   ├── Azure Data/             # Currently committed raw CSVs
+│   ├── CMAPSSData/             # Currently committed NASA data
 │   └── manifest.json
 ├── scripts/
-│   └── prepare_data.py
-├── src/                     # Planned: preprocessing, models, FL, privacy, KG, LLM
-├── experiments/             # Planned: configs, evaluation, ablations
-├── tests/                   # Planned: leakage and pipeline checks
-└── docs/                    # Planned: design decisions and project report
+│   └── prepare_data.py        # Dataset verification
+├── src/
+│   └── fedmaint/
+│       ├── data/
+│       ├── models/
+│       ├── federated/
+│       ├── privacy/
+│       ├── knowledge_graph/
+│       ├── explainability/
+│       └── evaluation/
+├── configs/                   # Experiment config guidance
+├── experiments/               # Experiment logging guidance
+├── tests/                     # Planned test guidance
+└── docs/
+    ├── ROADMAP.md
+    ├── ARCHITECTURE.md
+    ├── EXPERIMENT_PROTOCOL.md
+    └── DECISIONS.md
 ```
 
-**Current files:** `README.md`, `.gitignore`, `data/manifest.json`, `scripts/prepare_data.py`, and the uploaded datasets under `data/Azure Data/` and `data/CMAPSSData/`. The `src/`, `experiments/`, `tests/`, and `docs/` directories shown above are **proposed**, not implemented.
+**Current state:** The folders above contain **documentation and empty Python package stubs**; the only functional code currently in the repository is the dataset preparation/verification helper. No model training or FL privacy pipeline is available.
+
+### Project working documents
+
+- [Phases and completion criteria](docs/ROADMAP.md)
+- [Architecture and privacy boundaries](docs/ARCHITECTURE.md)
+- [Experimental protocol and leakage rules](docs/EXPERIMENT_PROTOCOL.md)
+- [Open design decisions](docs/DECISIONS.md)
 
 ## Research questions
 
