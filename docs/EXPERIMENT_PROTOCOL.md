@@ -6,12 +6,12 @@
 
 | Track | Prediction unit | Proposed target | Candidate metrics |
 | --- | --- | --- | --- |
-| Azure | Machine at a timestamp (component-level extension TBD) | Any failure during \`(t, t + 24 hours]\`; **24h is a proposal** | PR-AUC, precision, recall, F1, calibration |
+| Azure | Machine at a timestamp (component-level extension TBD) | Any failure during `(t, t + 24 hours]`; **24h is a proposal** | PR-AUC, precision, recall, F1, calibration |
 | NASA C-MAPSS | Engine at a cycle | Remaining useful life in **cycles** | RMSE, MAE, NASA asymmetric scoring function |
 
-**Azure label rule (proposed):** At time \`t\`, use only observed readings and histories at or before \`t\`. Label 1 if the relevant asset has a failure strictly after \`t\` and no later than \`t+24h\`, else 0 when adequate future observation exists. Exclude windows whose future outcome is unknown at dataset boundaries. Decide whether post-failure/repaired observations require exclusion or a reset.
+**Azure label rule (proposed):** At time `t`, use only observed readings and histories at or before `t`. Label 1 if the relevant asset has a failure strictly after `t` and no later than `t+24h`, else 0 when adequate future observation exists. Exclude windows whose future outcome is unknown at dataset boundaries. Decide whether post-failure/repaired observations require exclusion or a reset.
 
-**NASA label rule:** In run-to-failure **training** sequences, the uncapped per-cycle RUL is \`max_cycle_for_engine - current_cycle\`; any label capping must be an explicit experimental decision. In the published **test** subset, supplied \`RUL_FDxxx.txt\` values correspond to the last observed cycle for each test engine. Evaluation on earlier cycles requires a documented reconstruction using the supplied endpoint RUL and observed-cycle offset.
+**NASA label rule:** In run-to-failure **training** sequences, the uncapped per-cycle RUL is `max_cycle_for_engine - current_cycle`; any label capping must be an explicit experimental decision. In the published **test** subset, supplied `RUL_FDxxx.txt` values correspond to the last observed cycle for each test engine. Evaluation on earlier cycles requires a documented reconstruction using the supplied endpoint RUL and observed-cycle offset.
 
 ## 2. Simulated factory definitions
 
@@ -27,7 +27,7 @@
 - Never join future maintenance events, future error codes, or outcomes into predictors at an earlier prediction time.
 - Sliding windows must not cross machine/engine boundaries or accidentally mix train/validation/test records.
 - Establish a clear final-horizon cutoff in Azure so labels do not rely on unobserved future events.
-- Reconcile official NASA \`train\`, \`test\`, and \`RUL\` files; do not tune on official test labels.
+- Reconcile official NASA `train`, `test`, and `RUL` files; do not tune on official test labels.
 
 ## 4. Baseline comparisons
 
