@@ -1,0 +1,31 @@
+<task>
+Implement Phase 2A: reproducible exploratory analysis of the five committed Microsoft Azure Predictive Maintenance CSV files. Work on the current feature branch. Do not commit. The existing untracked AGENTS.md is intentional; preserve it.
+</task>
+
+<context>
+Read AGENTS.md, README.md, docs/ROADMAP.md, docs/DECISIONS.md, docs/DATA_FLOW.md, and data/manifest.json. The data are in data/Azure Data/. Phase 2A is only data ingestion, validation, summaries, and a presentation notebook. The design documents describe proposals, not approved modeling choices. Keep Azure and NASA tracks separate.
+</context>
+
+<command_and_tool_boundaries>
+Use Antigravity's native file tools to inspect repository files and implement changes. Do not run Git terminal commands. Codex has already confirmed branch feature/phase-2a-azure-eda and will inspect Git status and the diff independently.
+The only terminal commands you may run are these two, each exactly as written on its own, with no chaining, wrappers, redirection, or variants:
+python -m unittest discover -s tests -v
+python scripts/prepare_data.py --verify-only --dataset azure
+Codex will execute and inspect the notebook after implementation. If any other terminal command or file operation is essential but denied, stop and report its exact text or path and the denial. Do not try another spelling or tool to work around a denial.
+</command_and_tool_boundaries>
+
+<implementation>
+- Build reusable Azure CSV ingestion, explicit schema and timestamp validation, and descriptive summaries under src/fedmaint/data/. Handle malformed or missing fields with clear errors. Keep notebook computations grounded in those modules where practical.
+- Create notebooks/01_Azure_EDA.ipynb with reproducible narrative, numerical tables, and appropriate charts for Azure telemetry, machines, errors, maintenance, and failures. Examine coverage, machine/model distribution, missingness and duplicates, timestamp ordering or cadence, sensor distributions and possible outliers, and event frequencies over time or by relevant category. Describe data quality limitations. Avoid treating future failures as predictive inputs.
+- Add automated tests with small synthetic fixture data for loaders and validation, including invalid schema/timestamps and at least one integrity issue. Keep tests independent of the raw CSVs.
+- Document the notebook setup, execution, and interpretation in the relevant README or docs. Update docs/ROADMAP.md only for verified completed Phase 2A work; do not mark all Phase 2 complete or finalize open decisions.
+- Do not implement labels, feature windows, preprocessing fitted to data, model training, federated learning, privacy, knowledge graphs, LLMs, or NASA analysis. Do not modify raw data or manifest and do not invent metrics or findings.
+</implementation>
+
+<gates>
+Run only the two exact Python commands listed above. Codex will execute notebooks/01_Azure_EDA.ipynb when dependencies permit and inspect its numerical and chart outputs. If you know dependencies are unavailable, state the exact blocker and leave reproducible instructions. Do not install packages.
+</gates>
+
+<report>
+Finish synchronously only after implementation and any feasible gates complete. Report changed files, actual commands/results, notable descriptive findings tied to actual output, choices or limitations needing review, and any blocked validation. Do not commit, push, merge, reset, or overwrite unrelated work.
+</report>
