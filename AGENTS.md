@@ -1,14 +1,10 @@
 # FedKG-Maint agent workflow
 
-## Roles and delegation
+## Roles and implementation
 
-- Use the installed `agy-delegate` skill for every coding or implementation task, including small tasks, unless the user explicitly authorizes Codex to implement directly. A one-task exception applies only to its approved scope.
-- Codex is orchestrator and independent reviewer: inspect requirements and current state, identify interfaces and acceptance criteria, prepare a self-contained brief, dispatch AGY through the registered `codex-background` relay, wait for its result, inspect actual files and the full diff, and independently rerun relevant gates. Request focused AGY corrections when needed.
-- AGY implements using its configured default model. Never pass `--model`, hardcode a replacement model, or switch models without explicit user approval. AGY must not stage, commit, push, merge, or change security/permission settings.
-- Keep the original background-relay request pending until completion. Do not poll logs or status through model-driven loops. Reattach interrupted waits using the same run ID; do not redispatch an existing job.
-- If AGY, authentication, the relay, or the workspace is unavailable, report the blocker and request missing setup or a one-task exception. Never silently substitute another implementer.
-- On a headless permission denial, inspect partial edits, report the denied operation, and stop that delegation. Do not repeat the same dispatch, widen grants, use permission-bypass flags, or modify global permissions/security settings.
-- Codex may perform audits, provenance-preserving copies, validation, briefs, and orchestration documentation. Application implementation remains AGY-first. Do not run implementers concurrently against the same files.
+- Codex directly implements, reviews, and tests requested work. Inspect requirements and current state, identify interfaces and acceptance criteria, implement changes, inspect actual files and the full diff, and run relevant gates. Correct defects and repeat validation as needed.
+- Do not run implementers concurrently against the same files.
+- Do not widen permission grants, use permission-bypass flags, or modify global permissions/security settings without explicit user approval.
 
 ## Project boundaries
 
@@ -23,5 +19,5 @@
 
 - Prefer a main-oriented workflow without unnecessary feature branches. Do not create branches automatically. Preserve unrelated changes and the old repository history.
 - Remote history rewriting, force-pushing, and remote branch deletion require an exact plan and separate explicit approval. No push, merge, destructive cleanup, or active-directory replacement is authorized merely by preparing a candidate.
-- Codex reviews all changed/untracked files and staged changes before accepting work. Commit only under the user's authorized scope; AGY never commits.
+- Codex reviews all changed/untracked files and staged changes before accepting work. Commit only under the user's authorized scope.
 - Define real validation commands when tooling is introduced. Do not invent passing tests or commands for this documentation-only foundation. Require reproducible configs, data integrity, leakage/holdout checks, appropriate scientific evaluation, and backend API integration gates as each phase is implemented.
