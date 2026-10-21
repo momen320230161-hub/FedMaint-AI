@@ -2,7 +2,7 @@
 
 Privacy-preserving predictive maintenance using federated learning, factory-local knowledge graphs, and evidence-grounded LLM explanations and maintenance recommendations.
 
-Phase 01 supplies validated Azure and NASA pipelines, reproducible simulated factories, client-local preprocessing, and a read-only FastAPI metadata backend. Predictive models, performance results, federation, privacy mechanisms, KGs, explanations, and the UI belong to later phases. Previous implementation and research artifacts remain in the separately verified Phase 00 backup and the separately preserved legacy repository.
+Phase 01 supplies validated Azure and NASA pipelines, reproducible simulated factories, client-local preprocessing, and a read-only FastAPI metadata backend. Phase 02 adds logistic/MLP predictive baselines, measured local/centralized and held-out results, and validated numeric model artifacts. Federation, privacy mechanisms, KGs, explanations, and the UI belong to later phases. Previous implementation and research artifacts remain in the separately verified Phase 00 backup and the separately preserved legacy repository.
 
 Read the [original academic brief](docs/Project2_Description.pdf), [project overview](docs/PROJECT_OVERVIEW.md), [development roadmap](docs/ROADMAP.md), and [agent workflow](AGENTS.md).
 
@@ -59,13 +59,47 @@ The app starts without reading telemetry. Missing, malformed, or stale metadata 
 
 Optional process-local variables are `FEDMAINT_ROOT` (repository root) and `FEDMAINT_METADATA` (catalog path, useful for a different output directory). They do not change global Codex settings.
 
+## Reproduce Phase 02 baselines
+
+First run the Phase 01 install/preparation commands above. Reuse the pinned environment; no new dependency or global setting is required. Phase 02 adds a training-derived union feature adapter without rewriting Phase 01 data/preprocessing. See [model and zero-shot protocol](docs/PHASE02_PROTOCOL.md), [measured results](docs/PHASE02_RESULTS.md), and [acceptance commands](docs/PHASE02_ACCEPTANCE.md).
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q --basetemp outputs/pytest-phase02-final
+.\.venv\Scripts\python.exe -W error scripts/run_baselines.py --config configs/phase02.json --prepared outputs/phase01 --output outputs/phase02
+.\.venv\Scripts\python.exe -W error scripts/verify_baselines.py
+.\.venv\Scripts\python.exe scripts/report_baselines.py
+```
+
+The completed local experiment contains **36 runs**, seeds 42/43/44, with three local clients and one pooled reference per architecture/task. Azure implements L2 logistic regression and a 32-unit MLP; NASA implements a 32-unit masked-window MLP. MLP selection is capped at 40 epochs per learning-rate candidate, using validation only. All choices finish before test/held-out arrays are opened. This measured run took 71.34 seconds; timing varies by machine. The complete suite passed 78 tests.
+
+An existing experiment plan is preserved; `run_baselines.py` rejects reuse of its output directory. For a fresh rerun select another directory with `--output`, then point `verify_baselines.py --experiment` to it. The reporting helper intentionally reports the canonical `outputs/phase02` run. Artifacts remain ignored under `outputs/phase02/`: `plan.json`, `phase01-catalog.json`, `metrics.csv`, `verification.json`, and per-run checkpoints, frozen transformations, and prediction CSVs. The audit reloads all 36 models and exactly reproduces all 138 prediction files, metrics, and validation-only thresholds.
+
+Shared inputs are 21 Azure coordinates and 750 NASA coordinates (30 × 24 features plus 30 masks). Held-out preprocessing is frozen from permitted source training statistics. The centralized source rule selects Azure model1 and NASA FD002 using training-only feature coverage. Local FD001/FD003 NASA source scalers extrapolate severely on FD004; these failures and overflowing NASA score sums are explicitly retained in log/scientific notation. No result is used to retrospectively change a transformation or select another checkpoint. See the results and protocol for all limitations.
+
+The internal backend loading interface is available without adding prediction HTTP endpoints:
+
+```python
+from pathlib import Path
+from fedmaint.api.artifacts import load_model_artifact
+
+model = load_model_artifact(
+    Path("outputs/phase02/nasa-mlp-pooled-seed42"), expected_dataset="nasa"
+)
+# model.predict_raw(x, feature_names, mask) applies its saved source transformation.
+# model.predict_encoded(x) requires the exact saved input dimension/coordinate order.
+```
+
+Phase 02 is complete locally; Phase 03 remains unstarted and requires further approval. The centralized reference pools locally standardized training samples and provides no privacy guarantee.
+
 ## Project layout
 
 | Location | Responsibility |
 | --- | --- |
 | `src/fedmaint/data/` | Config validation, hash/row audit, schema loaders, targets/windows, partitions, local transformations, preparation |
 | `src/fedmaint/api/` | Pydantic response contracts and lazy metadata endpoints |
+| `src/fedmaint/models/` | Shared input contracts, frozen source transforms, local/pooled baseline selection, metrics, numeric checkpoints |
 | `configs/phase01.json` | Frozen initial window/horizon/split/holdout defaults |
+| `configs/phase02.json` | Seeded, bounded model/candidate budgets |
 | `scripts/` | Integrity audit, real-data preparation, live HTTP smoke test |
 | `tests/` | Synthetic adversarial tests and full real-data/API/reproducibility checks |
 | `outputs/` | Ignored generated samples, preprocessing states, catalog, pytest scratch |

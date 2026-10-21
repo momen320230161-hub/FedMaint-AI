@@ -8,7 +8,7 @@
 
 ## Project boundaries
 
-- This is the active clean-foundation repository. Phase 01 was explicitly authorized and implemented; see [docs/PHASE01_ACCEPTANCE.md](docs/PHASE01_ACCEPTANCE.md) for executed gates. Phase 02 requires further user authorization. Preserve the separately retained legacy repository and do not modify/remove the verified backup.
+- This is the active clean-foundation repository. Phases 01 and 02 were explicitly authorized and implemented; see [docs/PHASE01_ACCEPTANCE.md](docs/PHASE01_ACCEPTANCE.md) and [docs/PHASE02_ACCEPTANCE.md](docs/PHASE02_ACCEPTANCE.md) for executed gates. Phase 03 requires further user authorization. Preserve the separately retained legacy repository and do not modify/remove the verified backup.
 - Follow [docs/ROADMAP.md](docs/ROADMAP.md). Implement no frontend or React scaffold before Phase 06 backend/model acceptance. The complete UI belongs to Phase 07.
 - Preserve original raw dataset, manifest, and project PDF bytes. Never change manifest hashes to accommodate altered inputs. Do not follow links/junctions outside intended source trees during preservation operations.
 - Treat [docs/Project2_Description.pdf](docs/Project2_Description.pdf) as the academic source. Distinguish its requirements from user delivery constraints and proposed scientific decisions. Do not carry old implementation choices or results into this restart as approved facts.
