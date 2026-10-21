@@ -1,0 +1,20 @@
+{
+  "seed": 42,
+  "azure": {
+    "history_hours": 24,
+    "horizon_hours": 24,
+    "stride_hours": 24,
+    "event_lag_hours": 1,
+    "train_end": "2015-08-01T00:00:00",
+    "validation_end": "2015-10-01T00:00:00",
+    "held_out_model": "model4",
+    "feature_groups": ["telemetry", "errors", "maintenance"]
+  },
+  "nasa": {
+    "window_cycles": 30,
+    "stride_cycles": 10,
+    "validation_fraction": 0.2,
+    "rul_cap": null,
+    "held_out_domain": "FD004"
+  }
+}
