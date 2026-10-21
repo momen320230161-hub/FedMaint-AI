@@ -1,67 +1,20 @@
-# FedMaint-AI — Project Roadmap
+# FedKG-Maint backend-first roadmap
 
-> **Status: working plan, not a report of completed experiments.** This plan follows the nine development stages in the project proposal and adds Phase 0 for repository setup. See [DECISIONS.md](DECISIONS.md) for unresolved design choices.
+The final deliverable is a complete full-stack project with a FastAPI backend and React UI. This roadmap implements the [academic requirements](PROJECT_OVERVIEW.md) from the [original project brief](Project2_Description.pdf), plus the user's delivery constraints. Phase order is sequential. No frontend implementation or scaffolding may start before Phase 06 backend/model acceptance.
 
-## Scope
+| Phase | Deliverables | Exit gate | Current status |
+| --- | --- | --- | --- |
+| **00 — Clean project foundation** | Separate minimal candidate containing original Azure/NASA inputs, unchanged manifest, original PDF, overview, roadmap, README, AGENTS, and .gitignore. Verified backup/restore evidence and a reversible Git migration plan remain outside the candidate. | Verify retained bytes, hashes/row counts, PDF provenance, academic coverage, exact file tree, and document links. Obtain explicit approval before making the candidate active. | Completed locally; activation verified. |
+| **01 — Azure and NASA data processing and FastAPI backend** | Establish reproducible dependencies/tooling, separate ingestion and validation pipelines, cleaning/missing-value/constant-sensor handling, local normalization, windows and targets. Specify non-IID clients and unseen held-out factories. Establish FastAPI configuration, schemas, API contracts, and health checks. | Dataset integrity and loader/target/split tests pass; local preprocessing and future/held-out leakage checks pass; data/feature contracts are documented; backend foundation runs with tested basic endpoints. No model-performance or UI completion claims. | Not started. |
+| **02 — Predictive models and local/centralized baselines** | Implement dataset-appropriate predictors for Azure failure classification and NASA RUL. Run local-only and pooled centralized references, with documented backbones, training budgets, selection rules, seeds, configurations, and saved artifacts. | Reproducible baseline runs produce appropriate prediction metrics and per-client/held-out reports. Train-only fitting and validation-only selection are tested. Model artifacts and provenance can be loaded through validated backend interfaces. | Not started. |
+| **03 — Federated Learning: FedAvg and FedProx** | Implement and test both strategies with non-IID clients, matched predictive backbones and comparable reference budgets. Track rounds, convergence, per-client performance, held-out generalization, and communication bytes. | Aggregation and optimization tests pass; held-out clients never contribute training/tuning updates; no raw client data is exchanged in FL; repeatable FedAvg/FedProx comparisons against both references are recorded. | Not started. |
+| **04 — Privacy-preserving training** | Define threat model and residual-leakage boundaries; select and implement at least one explicit mechanism such as DP or secure aggregation. Evaluate privacy settings versus prediction utility and overhead, including possible model-update/shared-KG leakage. | Mechanism-specific tests and assumptions are documented; privacy accounting is valid where applicable; measured privacy-utility trade-offs and remaining leakage are reported. Ordinary FL is not presented as a formal privacy guarantee. | Not started. |
+| **05 — Local Knowledge Graphs and LLM explanations** | Agree on ontology and build client-local graphs from supported machine/component/sensor/error/failure/maintenance facts with provenance. Retrieve evidence for LLM explanations and maintenance recommendations grounded in model outputs and KG facts. Optional domain enrichment must be identified. | Retrieval and evidence checks pass. Compare grounded and ungrounded LLM explanations for factual correctness, hallucinations, and faithfulness. Reject unsupported facts and distinguish model associations from causal claims. No invented NASA maintenance histories. | Not started. |
+| **06 — Scientific evaluation and complete backend integration** | Complete prediction/generalization and communication analysis; vary client count and heterogeneity. Complete meaningful without-KG/without-privacy/without-LLM ablations, multiple seeded runs, uncertainty/statistical significance testing, and limitations. Include small human explanation evaluation if feasible, recording limitations otherwise. Integrate all backend APIs for predictions, model artifacts, experiments/jobs, FL, privacy, graph evidence, and explanations. | Required scientific comparisons and reproducibility evidence are reviewed; appropriate metrics include NASA RMSE/scoring and Azure F1/PR-AUC. Unit, integration, API/error-handling, leakage/holdout, and model-serving checks pass. Backend and models are complete and independently accepted before Phase 07. | Not started. |
+| **07 — React UI and final project delivery** | Only after Phase 06 acceptance: implement React views against the validated backend for prediction, experiment/results, FL/privacy, and grounded explanation workflows. Deliver the final research report, run/setup instructions, and complete full-stack project. | End-to-end flows and failure/loading states pass; visible results and explanations match actual backend evidence; setup and experiments can be reproduced; final claims and limitations match measured work. | Not started. |
 
-Two **independent experimental tracks** share reusable infrastructure but not one combined prediction target:
+The backend is developed incrementally in Phases 01-06, with scientific tests introduced alongside each method rather than postponed until the final evaluation. Full model/backend acceptance is a prerequisite for UI development, including mock UI or initial React setup.
 
-- **Track A (primary): Microsoft Azure Predictive Maintenance.** Candidate target: component/machine failure within a future time horizon (24 hours proposed, not finalized). Focus: failure prediction, local maintenance KG and grounded explanations.
-- **Track B: NASA C-MAPSS.** Target: engine Remaining Useful Life (RUL) in operating cycles. Focus: time-series prediction and cross-domain FL generalization.
+Freeze task definitions, split/holdout policies, metrics, and selection rules before the relevant experiments. Use only permitted local training/history data for preprocessing and keep held-out outcomes out of model selection. Preserve original inputs; record configuration, source revisions, random seeds, environment, and result provenance. Do not carry prior implementation results into new experiments as evidence.
 
-The datasets simulate machines and engine domains, **not multiple real organizations**. "Factories" refers to simulated federated clients.
-
-## Phases and completion gates
-
-| Phase | Name | Dependencies | Deliverables | Exit criteria | Status |
-| --- | --- | --- | --- | --- | --- |
-| 0 | Repository foundation | Uploaded datasets | Folder structure; preparation script; design/roadmap documentation | Tracked folders and documents exist; links resolve | **Completed (scaffold only)** |
-| 1 | Requirements and architecture | Phase 0 | Frozen prediction tasks, client definitions, split policy, initial ontology, privacy threat model, interfaces | Team reviews and records decisions in DECISIONS.md | **In progress (draft only)** |
-| 2 | Data understanding and preprocessing | Phase 1 | EDA, validation checks, feature windows, targets, non-IID client partitioning, held-out splits, client-local normalization | Reproducible data reports and leakage tests pass; label definitions documented | Not started |
-| 3 | Predictive baselines | Phase 2 | Matched-model local-only and centralized experiments, first sequence model | Training and evaluation repeat from configs; baseline results logged | Not started |
-| 4 | Federated learning | Phases 2–3 | FedAvg and FedProx training loops, per-client results, communication tracking | Reproducible FL runs and like-for-like comparison to baselines | Not started |
-| 5 | Privacy evaluation | Phase 4 | One chosen privacy mechanism (DP or secure aggregation), threat model, risk discussion | Technique implemented and evaluated; trade-offs/limitations reported | Not started |
-| 6 | Maintenance knowledge graphs | Phases 1–2 | Shared ontology; client-local KG construction; provenance-aware retrieval | Retrieval returns traceable facts without invented causal relationships | Not started |
-| 7 | LLM-based explainability | Phases 3 and 6 | Explanation pipeline grounded in model output and local KG evidence | Grounded vs ungrounded explanation evaluation and error analysis | Not started |
-| 8 | Evaluation and ablations | Phases 3–7 | Cross-client/generalization results, metrics, ablations, privacy/communication analysis, multiple seeds | All required comparisons and limitations documented | Not started |
-| 9 | Integration and final report | Phase 8 | End-to-end research demo (if feasible), reproducibility guide, report | Demo and claims match actual experimental evidence | Not started |
-
-Phase 6 can progress **in parallel** with Phases 3–5 after the data and ontology contracts are stable. Phase 7 requires model predictions and a working graph retriever.
-
-## Key experimental comparisons (required by project description)
-
-- **Local-only** vs **centralized pooled-data reference** vs **FedAvg** vs **FedProx** with matched backbones.
-- **Trained factories** vs a genuinely **held-out factory** that contributes no training or hyperparameter-selection information.
-- At least one **privacy mechanism**; predictive quality vs protection and overhead.
-- **KG-grounded explanations** vs **ungrounded LLM explanations**; assess correctness and hallucination.
-- Where meaningful, ablations for KG, privacy, and LLM, plus multiple runs and statistical testing.
-- Communication volume and impact of client count and heterogeneity.
-
-## Phase 1 working designs
-
-- [End-to-end data flow and proposed non-IID client split](DATA_FLOW.md)
-- [GRU-based architecture candidate and matched comparison plan](MODEL_DESIGN.md)
-- [Decision log with measured Azure machine/failure counts](DECISIONS.md)
-
-These are **design artefacts**, not approved implementation or model results. The checklist below remains open until reviewed and validated.
-
-## Immediate tasks (Phase 1)
-
-- [ ] Choose and freeze the **Azure prediction unit** (machine or component), horizon, and sampling cadence.
-- [ ] Decide exactly how Azure machines are assigned to clients and which client is completely held out.
-- [ ] Choose NASA training/validation/final hold-out domains and how standard train/test files will be used without leakage.
-- [ ] Specify sensor windows, event join rules, early-warning policy, and local normalization.
-- [ ] Select a **matched predictive backbone** for centralized/local/FL comparisons.
-- [ ] Select a privacy threat model; then choose DP or secure aggregation and measurable claims.
-- [ ] Define KG ontology nodes, relations, provenance and what can be shared.
-- [ ] Approve first experiment protocol and log decisions in [DECISIONS.md](DECISIONS.md).
-
-### Definition of "done"
-
-A phase is complete only when **code/artefacts, validation, and written results** exist in the repo. A placeholder directory or planning document **does not count** as a model or pipeline implementation.
-
-## Team workflow
-
-Use a branch and pull request per deliverable, put configurations in `configs/`, store experiment descriptions in `experiments/`, and add automated checks to `tests/`. Track design changes in [DECISIONS.md](DECISIONS.md).
-
-**References:** [Project README](../README.md), [architecture](ARCHITECTURE.md), [experiment protocol](EXPERIMENT_PROTOCOL.md).
+Activation, any destructive cleanup, remote history rewriting, force-pushing, and remote branch deletion require the user's specific approval. Local activation does not authorize Phase 01. AGY implements using its configured default model; Codex orchestrates, reviews actual diffs, and independently reruns the relevant gates as defined in [AGENTS.md](../AGENTS.md).

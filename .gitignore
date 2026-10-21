@@ -1,23 +1,35 @@
-# Third-party raw datasets: download and prepare locally.
-data/raw/
-data/processed/
-*.zip
+# Local environments and Python caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
-# Model outputs and private settings
-models/
-outputs/
-wandb/
-mlruns/
+# Local credentials and settings
 .env
 .env.*
 !.env.example
-
-# Python and local editor files
-__pycache__/
-*.py[cod]
-.ipynb_checkpoints/
-.venv/
-venv/
-.pytest_cache/
-.DS_Store
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Generated data and research artifacts; original raw data stays eligible for Git
+/data/processed/
+/data/cache/
+/outputs/
+/checkpoints/
+/models/
+/wandb/
+/mlruns/
+/tmp/
+*.log
+
+# Future JavaScript dependencies/build outputs; React implementation is Phase 07
+node_modules/
+dist/
+build/
+coverage/
