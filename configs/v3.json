@@ -1,0 +1,49 @@
+{
+  "pipeline": {
+    "seed": 42,
+    "azure": {
+      "history_hours": 24,
+      "horizon_hours": 24,
+      "stride_hours": 24,
+      "event_lag_hours": 1,
+      "train_end": "2015-08-01T00:00:00",
+      "validation_end": "2015-10-01T00:00:00",
+      "held_out_model": "model4",
+      "feature_groups": [
+        "telemetry"
+      ]
+    },
+    "nasa": {
+      "window_cycles": 30,
+      "stride_cycles": 10,
+      "validation_fraction": 0.2,
+      "rul_cap": null,
+      "held_out_domain": "FD004"
+    }
+  },
+  "training": {
+    "seeds": [
+      42,
+      43
+    ],
+    "hidden": 32,
+    "epochs": 40,
+    "patience": 6,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "alpha": 0.0001,
+    "rul_scale": 100.0,
+    "normalizer": "N2",
+    "nasa_architectures": [
+      "gru",
+      "mlp"
+    ],
+    "bin_resolution": [
+      1.0,
+      0.1,
+      1.0
+    ],
+    "min_bin_rows": 128,
+    "device": "cpu"
+  }
+}

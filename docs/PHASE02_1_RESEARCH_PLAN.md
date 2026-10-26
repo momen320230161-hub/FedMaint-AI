@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 02.1 research alignment and bounded optimization plan
 
 Date: 2026-10-22. Status: **pre-implementation protocol and read-only source diagnostic**. No new predictor, normalization candidate, PyTorch installation, training run, or FD004 evaluation was performed for this document. Phase 02 remains an unchanged historical baseline. Phase 03, privacy mechanisms, KG, LLM, and UI remain outside scope.

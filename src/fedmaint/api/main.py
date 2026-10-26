@@ -46,8 +46,8 @@ def read_catalog(root: Path, metadata: Path) -> Catalog:
 
 def create_app(root: Path | None = None, metadata: Path | None = None) -> FastAPI:
     project_root = (root or Path(os.environ.get("FEDMAINT_ROOT", Path(__file__).resolve().parents[3]))).resolve()
-    catalog_path = metadata or Path(os.environ.get("FEDMAINT_METADATA", project_root / "outputs/phase01/metadata.json"))
-    app = FastAPI(title="FedKG-Maint data foundation", version="0.1.0")
+    catalog_path = metadata or Path(os.environ.get("FEDMAINT_METADATA", project_root / "outputs/v3/data/metadata.json"))
+    app = FastAPI(title="FedKG-Maint data foundation", version="0.3.0")
 
     def catalog():
         return read_catalog(project_root, catalog_path)

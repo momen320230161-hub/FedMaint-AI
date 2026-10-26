@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from .normalization import _statistics
 
 from .contracts import DataError
 
@@ -23,25 +23,15 @@ class LocalPreprocessor:
         values = frame[features].to_numpy(dtype=float)
         if np.isinf(values).any():
             raise DataError("Infinite feature values")
-        # Drop all-missing columns before medians, then constants after imputation.
-        available = ~np.isnan(values).all(axis=0)
-        if not available.any():
-            raise DataError("No observed training features")
-        candidates = np.asarray(features)[available]
-        values = values[:, available]
-        medians = np.nanmedian(values, axis=0)
-        filled = np.where(np.isnan(values), medians, values)
-        informative = np.ptp(filled, axis=0) > 0
-        if not informative.any():
-            raise DataError("All training features are constant/uninformative")
-        self.columns = candidates[informative].tolist()
-        self.medians = medians[informative]
-        scaler = StandardScaler().fit(filled[:, informative])
-        self.mean = scaler.mean_
-        self.scale = scaler.scale_
+        stats = _statistics(values, 'N0')
+        self.columns = list(features)
+        self.medians = np.asarray(stats['median'])
+        self.mean = np.asarray(stats['center'])
+        self.scale = np.asarray(stats['scale'])
+        self.informative = np.asarray(stats['informative'], dtype=bool)
         self.factory_id = factory_id
         self.fit_rows = len(frame)
-        self.dropped = [col for col in features if col not in self.columns]
+        self.dropped = [col for col, keep in zip(features, self.informative) if not keep]
         return self
 
     def transform(self, frame: pd.DataFrame) -> np.ndarray:
@@ -52,26 +42,30 @@ class LocalPreprocessor:
         values = frame[self.columns].to_numpy(dtype=float)
         if np.isinf(values).any():
             raise DataError("Infinite transform features")
-        return (np.where(np.isnan(values), self.medians, values) - self.mean) / self.scale
+        result = (np.where(np.isnan(values), self.medians, values) - self.mean) / self.scale
+        result[:, ~self.informative] = 0
+        if not np.isfinite(result).all():
+            raise DataError('Non-finite transformed input')
+        return result
 
     def save(self, path: Path):
-        state = {"schema": 1, "factory_id": self.factory_id, "fit_rows": self.fit_rows,
-                 "columns": self.columns, "dropped": self.dropped,
+        state = {"schema": 3, "factory_id": self.factory_id, "fit_rows": self.fit_rows,
+                 "informative": self.informative.tolist(), "columns": self.columns, "dropped": self.dropped,
                  "medians": self.medians.tolist(), "mean": self.mean.tolist(), "scale": self.scale.tolist()}
         path.write_text(json.dumps(state, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
     @classmethod
     def load(cls, path: Path):
         state = json.loads(path.read_text())
-        if state.pop("schema") != 1:
+        if state.pop("schema") != 3:
             raise DataError("Unknown preprocessing schema")
         result = cls()
         for name, value in state.items():
-            setattr(result, name, np.asarray(value, dtype=float) if name in ("medians", "mean", "scale") else value)
+            setattr(result, name, np.asarray(value, dtype=bool if name == "informative" else float) if name in ("medians", "mean", "scale", "informative") else value)
         if (not result.columns or len(set(result.columns)) != len(result.columns)
                 or any(not name.startswith("feat_") for name in result.columns)
                 or any(a.shape != (len(result.columns),) for a in (result.medians, result.mean, result.scale))
                 or not all(np.isfinite(a).all() for a in (result.medians, result.mean, result.scale))
-                or (result.scale <= 0).any()):
+                or result.informative.shape != (len(result.columns),) or (result.scale <= 0).any()):
             raise DataError("Invalid preprocessing state")
         return result

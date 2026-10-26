@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 02 measured baseline results
 
 Newly executed local results, 2026-10-21. All values below derive from `outputs/phase02/plan.json`; no historical results are imported.

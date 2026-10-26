@@ -1,107 +1,106 @@
-# FedKG-Maint
+# FedMaint-AI
 
-Privacy-preserving predictive maintenance using federated learning, factory-local knowledge graphs, and evidence-grounded LLM explanations and maintenance recommendations.
+A predictive-maintenance research foundation for Azure failure classification and
+NASA C-MAPSS RUL regression. Architecture V3 consolidates Phase 01/02/02.1 into
+one PyTorch training/inference system. FedAvg/FedProx, explicit privacy, local KGs,
+LLM explanations and React remain later phases; Phase 03 requires authorization.
 
-Phase 01 supplies validated Azure and NASA pipelines, reproducible simulated factories, client-local preprocessing, and a read-only FastAPI metadata backend. Phase 02 adds logistic/MLP predictive baselines, measured local/centralized and held-out results, and validated numeric model artifacts. Federation, privacy mechanisms, KGs, explanations, and the UI belong to later phases. Previous implementation and research artifacts remain in the separately verified Phase 00 backup and the separately preserved legacy repository.
+Read [Architecture V3](docs/ARCHITECTURE_V3.md), [current data protocol](docs/V3_DATA_PROTOCOL.md),
+[experiment protocol](docs/V3_EXPERIMENT_PROTOCOL.md), [measured results](docs/V3_RESULTS.md),
+[acceptance evidence](docs/V3_ACCEPTANCE.md), [project overview](docs/PROJECT_OVERVIEW.md)
+and [roadmap](docs/ROADMAP.md).
 
-Read the [original academic brief](docs/Project2_Description.pdf), [project overview](docs/PROJECT_OVERVIEW.md), [development roadmap](docs/ROADMAP.md), and [agent workflow](AGENTS.md).
+## Reproduce
 
-The retained inputs are:
-
-- [Microsoft Azure Predictive Maintenance](data/Azure%20Data/): five original CSV files.
-- [NASA C-MAPSS](data/CMAPSSData/): twelve numeric data files and its original source documentation.
-- [Verified manifest](data/manifest.json): accepted exact SHA-256 hashes and row counts. Preserve these files byte-for-byte, including existing line endings; do not rewrite hashes to accept changed data.
-
-Development proceeds through data/backend, baselines, federated learning, explicit privacy, local KGs/LLM explanations, and scientific/backend validation. React implementation is exclusively Phase 07, after the backend and models pass Phase 06 acceptance. The final deliverable is a complete full-stack project.
-
-Codex directly implements, reviews, and tests this project. Use the existing main branch. See the [Phase 01 data contracts](docs/PHASE01_PROTOCOL.md) and [acceptance report](docs/PHASE01_ACCEPTANCE.md) for definitions, limitations, and executed checks.
-
-## Reproduce Phase 01
-
-Run from this repository in PowerShell with CPython 3.12 (validated on Windows, Python 3.12.10). The exact environment is pinned in `requirements-lock.txt`; `pyproject.toml` declares package and direct dependencies. No global settings or global package installs are needed.
+Use CPython 3.12 and a project-local environment. Existing `.venv-phase021` has the
+pinned CPU dependencies and can be reused. For a fresh local environment:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
-.\.venv\Scripts\python.exe -m pip install --no-build-isolation --no-deps -e .
-.\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe scripts/verify_data.py
-.\.venv\Scripts\python.exe scripts/prepare_data.py --config configs/phase01.json
-.\.venv\Scripts\python.exe -m pytest -q --basetemp outputs/pytest-phase01
-.\.venv\Scripts\python.exe scripts/smoke_backend.py
-.\.venv\Scripts\python.exe -m compileall -q src scripts
+.venv/Scripts/python.exe -m pip install -r requirements-v3.lock
+.venv/Scripts/python.exe -m pip install --no-build-isolation --no-deps -e .
+.venv/Scripts/python.exe -m pip check
 ```
 
-Preparation verifies all 17 manifest entries, validates schemas, creates real Azure tabular samples and NASA masked sequences, fits six training-client preprocessors, and publishes `outputs/phase01/metadata.json` last. Generated files are ignored by Git and never written under `data/`. Tests include two full real-data preparation runs, so allow time and disk space for those outputs. `--basetemp` is disposable pytest scratch space, recreated by pytest on subsequent runs; do not point it at valuable files.
-
-For a changed configuration use a separate output directory:
+Commands below use the existing validated environment. Run from this repository.
+Choose a **fresh** experiment directory; accepted outputs are never overwritten.
+Run metadata/full-suite tests after experimental freeze, since they inspect holdouts.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/prepare_data.py --config configs/phase01.json --output outputs/experiment-01
+.venv-phase021/Scripts/python.exe scripts/verify_data.py
+.venv-phase021/Scripts/python.exe -W error scripts/run_v3.py run --output outputs/v3/reference-final
+.venv-phase021/Scripts/python.exe -W error scripts/run_v3.py verify --output outputs/v3/reference-final
+.venv-phase021/Scripts/python.exe scripts/prepare_data.py
+.venv-phase021/Scripts/python.exe -m pytest -q -o cache_dir=outputs/pytest-v3-cache --basetemp outputs/pytest-v3-final
+.venv-phase021/Scripts/python.exe scripts/smoke_backend.py
+.venv-phase021/Scripts/python.exe -m compileall -q src scripts
 ```
 
-Generated NPZ files load with `numpy.load(path, allow_pickle=False)`. Their feature order, source/split names, transformed status, and numeric-array SHA-256 digests appear in the catalog. Preprocessor JSON files are reloadable with `LocalPreprocessor.load(path)`. Held-out samples are explicitly **untransformed**; do not fit a held-out scaler. Later zero-shot experiments must choose and freeze a training-client transformation using training/validation evidence only.
+On this Windows host pytest temporary-directory permission operations require a
+normal host process rather than the restricted agent sandbox. Warnings remain
+errors; no warning filters are weakened. `--basetemp` is disposable test scratch.
 
-## Start the backend
+`configs/v3.json` freezes all experiment settings. Azure uses 16 telemetry summary
+coordinates, MLP(16,32,1), BCE/logits, validation AP selection and validation F1
+threshold selection. NASA uses the fixed sorted 24-coordinate schema, train-only
+N2 candidate normalization, GRU(24,32,1) plus masked MLP control, uncapped RUL,
+raw linear predictions and macro cycle 50/100 validation RMSE. Both local-only
+and centralized references use identical per-task models and budgets. N0/N1 are
+supported alternatives; changing candidates requires a fresh declared experiment,
+not selecting a strategy after looking at FD004. Prior held-out exposure means
+V3 held-out results are retrospective.
+
+All raw data, the [verified manifest](data/manifest.json), original academic PDF,
+and historical ignored outputs are preserved. Historical Phase 01/02/02.1 reports
+remain records of their original code at commit `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`.
+Their commands/configs describe that revision; they are not current entry points
+or new V3 measurements. Current dependencies use `requirements-v3.lock`; earlier
+locks remain provenance. No sklearn estimators remain in the training path;
+scikit-learn is retained for well-defined classification metrics.
+
+## Backend and inference
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn fedmaint.api.main:app --host 127.0.0.1 --port 8000
+.venv-phase021/Scripts/python.exe -m uvicorn fedmaint.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open `http://127.0.0.1:8000/docs` for typed contracts, or request:
-
-- `GET /health`: liveness plus `metadata_ready`.
-- `GET /api/datasets`: verified source hashes and row counts for both task definitions.
-- `GET /api/factories`: eight real simulated-factory summaries.
-- `GET /api/factories/azure-model4/summary` (or another listed ID): one factory's provenance and descriptive statistics.
-
-The app starts without reading telemetry. Missing, malformed, or stale metadata yields a structured 503 on dataset/factory endpoints; liveness remains 200 with `metadata_ready: false`. Unknown factories return structured 404 errors. No training/prediction endpoints exist. The catalog checks the manifest hash and each source's size/mtime on requests; this is a lightweight freshness check, not a substitute for the full hash audit. Re-run preparation after moving or touching raw files.
-
-Optional process-local variables are `FEDMAINT_ROOT` (repository root) and `FEDMAINT_METADATA` (catalog path, useful for a different output directory). They do not change global Codex settings.
-
-## Reproduce Phase 02 baselines
-
-First run the Phase 01 install/preparation commands above. Reuse the pinned environment; no new dependency or global setting is required. Phase 02 adds a training-derived union feature adapter without rewriting Phase 01 data/preprocessing. See [model and zero-shot protocol](docs/PHASE02_PROTOCOL.md), [measured results](docs/PHASE02_RESULTS.md), and [acceptance commands](docs/PHASE02_ACCEPTANCE.md).
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q --basetemp outputs/pytest-phase02-final
-.\.venv\Scripts\python.exe -W error scripts/run_baselines.py --config configs/phase02.json --prepared outputs/phase01 --output outputs/phase02
-.\.venv\Scripts\python.exe -W error scripts/verify_baselines.py
-.\.venv\Scripts\python.exe scripts/report_baselines.py
-```
-
-The completed local experiment contains **36 runs**, seeds 42/43/44, with three local clients and one pooled reference per architecture/task. Azure implements L2 logistic regression and a 32-unit MLP; NASA implements a 32-unit masked-window MLP. MLP selection is capped at 40 epochs per learning-rate candidate, using validation only. All choices finish before test/held-out arrays are opened. This measured run took 71.34 seconds; timing varies by machine. The complete suite passed 78 tests.
-
-An existing experiment plan is preserved; `run_baselines.py` rejects reuse of its output directory. For a fresh rerun select another directory with `--output`, then point `verify_baselines.py --experiment` to it. The reporting helper intentionally reports the canonical `outputs/phase02` run. Artifacts remain ignored under `outputs/phase02/`: `plan.json`, `phase01-catalog.json`, `metrics.csv`, `verification.json`, and per-run checkpoints, frozen transformations, and prediction CSVs. The audit reloads all 36 models and exactly reproduces all 138 prediction files, metrics, and validation-only thresholds.
-
-Shared inputs are 21 Azure coordinates and 750 NASA coordinates (30 × 24 features plus 30 masks). Held-out preprocessing is frozen from permitted source training statistics. The centralized source rule selects Azure model1 and NASA FD002 using training-only feature coverage. Local FD001/FD003 NASA source scalers extrapolate severely on FD004; these failures and overflowing NASA score sums are explicitly retained in log/scientific notation. No result is used to retrospectively change a transformation or select another checkpoint. See the results and protocol for all limitations.
-
-The internal backend loading interface is available without adding prediction HTTP endpoints:
+`GET /health`, `/api/datasets`, `/api/factories`, and
+`/api/factories/{factory_id}/summary` use validated metadata at
+`outputs/v3/data/metadata.json`. Missing/stale metadata gives structured errors.
+`FEDMAINT_ROOT` and `FEDMAINT_METADATA` are optional process-local overrides.
+No predictor HTTP endpoint or frontend scaffold is introduced.
 
 ```python
 from pathlib import Path
 from fedmaint.api.artifacts import load_model_artifact
-
 model = load_model_artifact(
-    Path("outputs/phase02/nasa-mlp-pooled-seed42"), expected_dataset="nasa"
+    Path("outputs/v3/reference-final/nasa-gru-pooled-seed 42"), expected_dataset="nasa"
 )
-# model.predict_raw(x, feature_names, mask) applies its saved source transformation.
-# model.predict_encoded(x) requires the exact saved input dimension/coordinate order.
+# raw_windows: [N,30,24], feature_names in model.metadata["features"] order
+# masks: [N,30] boolean, chronological with left padding
+prediction = model.predict_raw(raw_windows, feature_names, masks)
 ```
 
-Phase 02 is complete locally; Phase 03 remains unstarted and requires further approval. The centralized reference pools locally standardized training samples and provides no privacy guarantee.
+Artifacts contain numeric NPZ weights, a model contract, training history,
+separately hashed **private** normalizers, and auditable predictions. Loading uses
+`allow_pickle=False`, validates names/shapes/dtypes/finiteness and refuses escaping
+paths or hash mismatches. Bundles are trusted offline research artifacts. Only
+`export_state`/`import_state` neural tensors are potential future FL messages;
+private scalers and raw evaluation NPZs must not leave a client in an FL deployment.
+Central pooling and weight exchange alone provide no privacy guarantee.
 
-## Project layout
+## Layout
 
-| Location | Responsibility |
+| Path | Responsibility |
 | --- | --- |
-| `src/fedmaint/data/` | Config validation, hash/row audit, schema loaders, targets/windows, partitions, local transformations, preparation |
-| `src/fedmaint/api/` | Pydantic response contracts and lazy metadata endpoints |
-| `src/fedmaint/models/` | Shared input contracts, frozen source transforms, local/pooled baseline selection, metrics, numeric checkpoints |
-| `configs/phase01.json` | Frozen initial window/horizon/split/holdout defaults |
-| `configs/phase02.json` | Seeded, bounded model/candidate budgets |
-| `scripts/` | Integrity audit, real-data preparation, live HTTP smoke test |
-| `tests/` | Synthetic adversarial tests and full real-data/API/reproducibility checks |
-| `outputs/` | Ignored generated samples, preprocessing states, catalog, pytest scratch |
+| `src/fedmaint/data` | Integrity, raw schemas, labels/splits, private normalization, fixed batches/windows, offline metadata preparation |
+| `src/fedmaint/models` | PyTorch MLP/GRU, one trainer, validation metrics, safe artifacts, frozen experiment runner |
+| `src/fedmaint/api` | Metadata API and validated internal inference adapter |
+| `configs/v3.json` | Frozen local/centralized experiment |
+| `configs/v3_data.json` | Offline metadata preparation with the same data protocol |
+| `outputs/v3` | Ignored V3 models, predictions, freezes, metrics and metadata |
+| `tests` | Adversarial data/model tests, real preparation, inference and API checks |
 
-The [protocol](docs/PHASE01_PROTOCOL.md) documents the scientific assumptions that must stay fixed before later model comparisons. [scikit-learn's leakage guidance](https://scikit-learn.org/stable/common_pitfalls.html) supports split-before-fit preprocessing, and [FastAPI's testing documentation](https://fastapi.tiangolo.com/tutorial/testing/) describes the HTTP test client used here.
+Local coordinate meanings still differ across factories. Unknown N2 regimes fall
+back to the source-global robust state and are reported. A strict zero-shot serving
+policy compatible with private preprocessing remains a deployment research issue.

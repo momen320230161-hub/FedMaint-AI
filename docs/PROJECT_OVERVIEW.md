@@ -1,5 +1,7 @@
 # FedKG-Maint project overview
 
+Current implementation: [Architecture V3](ARCHITECTURE_V3.md) consolidates Phase01/02/02.1 into one PyTorch foundation. Use [V3 data protocol](V3_DATA_PROTOCOL.md), [experiment protocol](V3_EXPERIMENT_PROTOCOL.md), [results](V3_RESULTS.md) and [acceptance](V3_ACCEPTANCE.md). Phase03 remains unstarted. Sections describing old training below are historical context.
+
 FedKG-Maint studies privacy-preserving predictive maintenance across simulated factories. Factories learn a shared predictive model through federated learning without exchanging raw training records. A factory-local maintenance knowledge graph (KG) and an LLM explain predictions and recommend maintenance actions using evidence. Evaluation must establish whether the framework generalizes to previously unseen factories with different machines and operating conditions.
 
 The academic source of truth is the original three-page [Project2_Description.pdf](Project2_Description.pdf). The requirements below summarize that brief. FastAPI, React, the exact phase order, and frontend-last delivery are additional user requirements.
@@ -30,6 +32,21 @@ Before modeling, specify time/machine/engine split rules and prevent future info
 
 The final deliverable is a complete full-stack project: a FastAPI backend and a React UI. The user selects FedAvg and FedProx as the two federated methods. Development follows [ROADMAP.md](ROADMAP.md), with completed and validated backend/models before any frontend implementation. React begins only in Phase 07 after Phase 06 acceptance; no early UI scaffold or parallel frontend work is authorized.
 
-Phase 01 defines configurable initial prediction horizons, windows, RUL conventions, client partitions, and held-out domains in [PHASE01_PROTOCOL.md](PHASE01_PROTOCOL.md). Phase 02 establishes small logistic/MLP baselines, training-only common feature coordinates, frozen source transformations, and validation-only selection in [PHASE02_PROTOCOL.md](PHASE02_PROTOCOL.md). These are reproducible baseline defaults, not optimized choices or PDF mandates. FL architecture/framework, privacy mechanism, graph store, LLM hosting, and final scientific evaluation remain future decisions. The former implementation's choices and results are not approved defaults for this restart.
+The [V3 data protocol](V3_DATA_PROTOCOL.md) fixes targets, purged temporal splits,
+engine partitions, holdouts and feature contracts. The [V3 experiment protocol](V3_EXPERIMENT_PROTOCOL.md)
+fixes matched PyTorch local/pooled references, train-only normalization, validation
+checkpoint/threshold selection and retrospective final evaluation. These are
+reproducible engineering/research choices, not PDF-mandated optimal hyperparameters.
 
-The active repository now contains retained inputs, Phase 01 pipelines/metadata API, and Phase 02 predictive baselines with [newly measured results](PHASE02_RESULTS.md) and validated artifact-loading interfaces. [Phase 01 acceptance](PHASE01_ACCEPTANCE.md) and [Phase 02 acceptance](PHASE02_ACCEPTANCE.md) record executed checks and limitations, including severe single-condition NASA zero-shot extrapolation. Earlier implementation artifacts remain separately preserved and are not used as new evidence. No federation, explicit privacy mechanism/guarantee, KG, explanation pipeline, or UI is claimed. Phase 03 has not started.
+The active repository contains shared ingestion and metadata interfaces, a single
+PyTorch modeling/training system, safe numeric artifacts and validated internal
+inference. See [new V3 results](V3_RESULTS.md) and [acceptance evidence](V3_ACCEPTANCE.md).
+Earlier Phase01/02/02.1 reports remain historical records with preserved outputs;
+their superseded sklearn and optimization training paths are removed. Azure is
+telemetry-only by default. NASA N2 is a candidate reference with a GRU and matched
+MLP control, not an unquestionable normalization solution.
+
+No federation, explicit privacy mechanism, KG, explanation pipeline or frontend
+is claimed. Phase03 has not started. A privacy-compatible zero-shot preprocessing
+policy remains unresolved; offline source-normalizer transfer is not an approved
+federated message. Prior held-out exposure means V3 results are retrospective.

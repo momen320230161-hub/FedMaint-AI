@@ -1,145 +1,181 @@
-"""Train all frozen plans before opening any test/held-out arrays for evaluation."""
-
-import hashlib
-import csv
-from importlib.metadata import version
+"""Frozen local/pooled references, then retrospective final evaluation."""
 import json
-from pathlib import Path
 import platform
-import shutil
 import subprocess
 import time
-
-import pandas as pd
-from threadpoolctl import threadpool_limits
-
-from fedmaint.data.contracts import DataError
-from fedmaint.data.integrity import sha256, verify_manifest
+from importlib.metadata import version
+from pathlib import Path
+import numpy as np
+from fedmaint.common import digest,write_json,FEATURES
+from fedmaint.data.integrity import verify_manifest
 from fedmaint.data.prepare import safe_output
-from .artifacts import load_bundle, save_bundle
-from .contracts import TrainingConfig
-from .data import PreparedData, pool
-from .metrics import classification_metrics, regression_metrics
-from .training import train_model
+from fedmaint.data.contracts import DataError
+from fedmaint.data.batches import pool
+from fedmaint.data.clients import (source_clients,azure_samples,azure_batch,nasa_batch,AZURE_CLIENTS,NASA_CLIENTS)
+from .contracts import ExperimentConfig
+from .training import fit,predict
+from .artifacts import save_bundle,load_bundle
+from .metrics import classification_metrics,regression_metrics
 
 
-def write_json(path: Path, value):
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
-    temporary.replace(path)
+def source_hashes(root):
+    files=[p for folder in ('src','configs','scripts') for p in (root/folder).rglob('*') if p.is_file() and p.suffix in ('.py','.json')]
+    files += [root/'pyproject.toml',root/'data/manifest.json']
+    if (root/'requirements-v3.lock').exists():
+        files.append(root/'requirements-v3.lock')
+    return {str(p.relative_to(root)):digest(p) for p in sorted(files)}
 
 
-def run_experiments(root: Path, prepared: Path, output: Path, config: TrainingConfig) -> dict:
-    root = root.resolve()
-    output = safe_output(root, output)
-    if (output / "plan.json").exists():
-        raise DataError("Experiment directory already has a plan; use a new output directory")
-    verify_manifest(root)
-    data = PreparedData(root, prepared)
-    output.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(prepared / "metadata.json", output / "phase01-catalog.json")
-    code_files = sorted([*root.glob("src/**/*.py"), root / "scripts/run_baselines.py", root / "pyproject.toml"])
-    source_hashes = {str(p.relative_to(root)): sha256(p) for p in code_files}
-    code_digest = hashlib.sha256(json.dumps(source_hashes, sort_keys=True).encode()).hexdigest()
-    revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True).stdout.strip()
-    provenance = {"source_revision": revision, "source_sha256": code_digest,
-                  "phase01_catalog_sha256": sha256(prepared / "metadata.json"),
-                  "manifest_sha256": data.catalog["manifest_sha256"],
-                  "training_config_sha256": hashlib.sha256(config.model_dump_json().encode()).hexdigest()}
-    plan = {"schema_version": 1, "status": "training", "config": config.model_dump(mode="json"),
-            "provenance": provenance, "source_files": source_hashes,
-            "environment": {"python": platform.python_version(), **{p: version(p) for p in
-                            ("numpy", "scipy", "scikit-learn", "pandas", "threadpoolctl")}},
-            "contracts": {d: c.model_dump(mode="json") for d, c in data.contracts.items()}, "runs": []}
-    write_json(output / "plan.json", plan)
-    started = time.perf_counter()
-    cache = {}
+def seal(root, output, config):
+    record={'source':source_hashes(root),'config':config.model_dump(mode='json'),
+            'files':{str(p.relative_to(output)):digest(p) for p in output.rglob('*') if p.is_file()},
+            'exposure':'retrospective; FD004 and model4 were previously observed',
+            'selection':'fixed candidate panel; validation checkpoints/thresholds only'}
+    write_json(output/'freeze.json',record)
+    (output/'freeze.sha256').write_text(digest(output/'freeze.json'),encoding='ascii')
 
-    def load(factory, split, source=None):
-        key = factory, split, source
-        if key not in cache:
-            cache[key] = data.load(factory, split, source_factory=source)
-        return cache[key]
 
+def verify_freeze(root,output):
+    if digest(output/'freeze.json')!=(output/'freeze.sha256').read_text():
+        raise DataError('Freeze changed')
+    record=json.loads((output/'freeze.json').read_text())
+    if source_hashes(root)!=record['source']:
+        raise DataError('Source/config changed after freeze')
+    for filename,expected in record['files'].items():
+        path=(output/filename).resolve()
+        if not path.is_relative_to(output.resolve()) or digest(path)!=expected:
+            raise DataError('Frozen artifact changed')
+    return record
+
+
+class Identity:
+    def transform(self,frame):
+        return frame[list(FEATURES)].to_numpy(float),{}
+
+
+def metrics(dataset,y,prediction,threshold):
+    if dataset=='azure':
+        return classification_metrics(y,prediction,threshold)
+    result=regression_metrics(y,prediction)
+    result.update(negative_fraction=float(np.mean(prediction<0)),
+                  abs_error_p95=float(np.quantile(np.abs(prediction-y),.95)),
+                  abs_error_max=float(np.max(np.abs(prediction-y))))
+    return result
+
+
+def run(root,config,output):
+    root,output=root.resolve(),safe_output(root,output)
+    output.mkdir(parents=True,exist_ok=False)
+    started=time.perf_counter()
+    records=verify_manifest(root)
+    plan={'status':'running','config':config.model_dump(mode='json'),
+          'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),
+          'environment':{'python':platform.python_version(),**{p:version(p) for p in
+              ('torch','numpy','pandas','scikit-learn','fastapi','pydantic')}},
+          'input_files':records,'runs':[]}
+    write_json(output/'plan.json',plan)
     try:
-        for dataset, contract in data.contracts.items():
-            for architecture in (("logistic", "mlp") if dataset == "azure" else ("mlp",)):
-                for seed in config.seeds:
-                    for members in [*( (client,) for client in contract.training_factories), contract.training_factories]:
-                        scope = "local" if len(members) == 1 else "centralized"
-                        name = members[0] if scope == "local" else "pooled"
-                        run_id = f"{dataset}-{architecture}-{name}-seed{seed}"
-                        # Only these two split names are loaded anywhere in the training stage.
-                        train = pool([load(client, "train") for client in members])
-                        validation = pool([load(client, "validation") for client in members])
-                        result = train_model(train, validation, contract, architecture, config, seed, fitted_factories=members)
-                        model_dir = output / run_id
-                        manifest = save_bundle(model_dir, result, contract, scope, seed, members, data.states, provenance)
-                        plan["runs"].append({"run_id": run_id, "dataset": dataset, "architecture": architecture,
-                                             "scope": scope, "seed": seed, "status": "trained",
-                                             "model_directory": run_id, "training_seconds": result.selection["training_seconds"],
-                                             "default_source": manifest.default_source, "evaluations": []})
-                        write_json(output / "plan.json", plan)
-                        print(f"TRAINED {run_id}: {result.selection['selected']}", flush=True)
-        # No model/threshold/schema choice is permitted below this boundary.
-        plan["status"] = "evaluating"
-        write_json(output / "plan.json", plan)
-        with threadpool_limits(limits=1):
-            for run in plan["runs"]:
-                bundle = load_bundle(output / run["model_directory"])
-                members = bundle.manifest.fitted_factories
-                groups = [("pooled" if run["scope"] == "centralized" else members[0], "validation",
-                           pool([load(client, "validation") for client in members]), None)]
-                local_test = "test" if run["dataset"] == "azure" else "official_test"
-                groups.extend((client, local_test, load(client, local_test), None) for client in members)
-                for factory in data.catalog["factories"]:
-                    if factory["dataset"] == run["dataset"] and factory["role"] == "held_out":
-                        for split in factory["samples"]:
-                            groups.append((factory["factory_id"], split,
-                                           load(factory["factory_id"], split, bundle.manifest.default_source),
-                                           bundle.manifest.default_source))
-                for factory, split, batch, source in groups:
-                    prediction = bundle.predict_encoded(batch.x)
-                    metrics = (classification_metrics(batch.y, prediction, bundle.manifest.threshold) if run["dataset"] == "azure"
-                               else regression_metrics(batch.y, prediction))
-                    name = f"predictions-{factory}-{split}.csv"
-                    rows = {"sample_key": batch.keys, "factory_id": batch.factories,
-                            "truth": batch.y, "prediction": prediction}
-                    if bundle.manifest.threshold is not None:
-                        rows["decision"] = prediction >= bundle.manifest.threshold
-                    path = output / run["run_id"] / name
-                    pd.DataFrame(rows).to_csv(path, index=False, float_format="%.17g")
-                    run["evaluations"].append({"factory_id": factory, "split": split, "frozen_source": source,
-                                               "metrics": metrics, "predictions": name, "predictions_sha256": sha256(path),
-                                               "prepared_arrays_sha256": batch.source_digest})
-                run["status"] = "completed"
-                write_json(output / "plan.json", plan)
-                print(f"EVALUATED {run['run_id']}", flush=True)
-        expected = 12 * len(config.seeds)
-        if len(plan["runs"]) != expected or any(r["status"] != "completed" for r in plan["runs"]):
-            raise DataError("Mandatory local/centralized runs are missing")
-        plan["status"] = "completed"
-        plan["runtime_seconds"] = time.perf_counter() - started
-        write_json(output / "plan.json", plan)
-        _write_metrics_table(plan, output / "metrics.csv")
+        states,batches,azure_features,store=source_clients(root,config)
+        for dataset,clients,architectures,features in (
+            ('azure',AZURE_CLIENTS,('mlp',),azure_features),
+            ('nasa',NASA_CLIENTS,config.training.nasa_architectures,FEATURES)):
+            for architecture in architectures:
+                for seed in config.training.seeds:
+                    for scope in (*clients,'pooled'):
+                        members=clients if scope=='pooled' else (scope,)
+                        train=pool([batches[c]['train'] for c in members])
+                        validation=pool([batches[c]['validation'] for c in members])
+                        source=min(members,key=lambda c:(-states[c].coverage,c))
+                        model,training=fit(train,validation,dataset,architecture,config.training,seed,members,
+                                           config.pipeline.nasa.window_cycles)
+                        run_id=f'{dataset}-{architecture}-{scope}-seed{seed}'
+                        save_bundle(output/run_id,model,dataset=dataset,architecture=architecture,features=features,
+                                    hidden=config.training.hidden,window=1 if dataset=='azure' else config.pipeline.nasa.window_cycles,
+                                    states={c:states[c] for c in members},source=source,training=training,config=config.training)
+                        loaded=load_bundle(output/run_id,expected_dataset=dataset)
+                        np.testing.assert_array_equal(predict(model,validation,dataset,config.training.rul_scale),
+                                                      predict(loaded.network,validation,dataset,config.training.rul_scale))
+                        plan['runs'].append({'id':run_id,'dataset':dataset,'scope':scope,'architecture':architecture,
+                                             'seed':seed,'members':list(members),'source':source,'training':training,
+                                             'parameters':loaded.metadata['parameter_contract']})
+                        write_json(output/'plan.json',plan)
+                        print('FIT',run_id,'epoch',training['selected_epoch'],flush=True)
+        plan['status']='selected_and_frozen_before_evaluation'
+        write_json(output/'plan.json',plan)
+        seal(root,output,config)
+        verify_freeze(root,output)
+        with (output/'evaluation-started.json').open('x',encoding='utf-8') as marker:
+            json.dump({'retrospective':True,'freeze_sha256':digest(output/'freeze.json')},marker)
+        # No target fit, threshold change or retraining beyond this boundary.
+        store.gate=lambda:verify_freeze(root,output)
+        evaluations=[]
+        source_azure=azure_samples(root,config.pipeline.azure)
+        target_azure=azure_samples(root,config.pipeline.azure,held_out=True)
+        for entry in plan['runs']:
+            loaded=load_bundle(output/entry['id'])
+            dataset=entry['dataset']
+            pools=[]
+            if dataset=='azure':
+                for client in entry['members']:
+                    rows=source_azure.loc[(source_azure.factory_id==client)&(source_azure.split=='test')]
+                    pools.append((client,'test',rows,client,False))
+                pools.append(('azure-model4','held_out',target_azure,entry['source'],False))
+            else:
+                for client in entry['members']:
+                    pools.append((client,'official_test',store.read(client,'test'),client,True))
+                pools.append(('FD004','held_out_official_test',store.read('FD004','test'),entry['source'],True))
+                pools.append(('FD004','held_out_run_to_failure',store.read('FD004','train'),entry['source'],False))
+            for client,split,frame,source,terminal in pools:
+                if dataset=='azure':
+                    batch,diagnostic=azure_batch(frame,loaded.states[source],split)
+                    raw_x=frame[loaded.metadata['features']].to_numpy(float)
+                    mask=None
+                else:
+                    batch,diagnostic=nasa_batch(store,frame,loaded.states[source],split,terminal=terminal)
+                    raw,_=nasa_batch(store,frame,Identity(),split,terminal=terminal,dtype=np.float64)
+                    raw_x,mask=raw.x,raw.mask
+                prediction=predict(loaded.network,batch,dataset,config.training.rul_scale)
+                restored=loaded.predict_raw(raw_x,loaded.metadata['features'],mask,client=source)
+                np.testing.assert_allclose(prediction,restored,rtol=0,atol=0)
+                filename=f'{entry["id"]}/{client}-{split}.npz'
+                arrays={'x':raw_x,'y':batch.y,'prediction':prediction,'keys':batch.keys}
+                if mask is not None:
+                    arrays['mask']=mask
+                np.savez_compressed(output/filename,**arrays)
+                result={'run':entry['id'],'dataset':dataset,'client':client,'split':split,'source':source,
+                        'seed':entry['seed'],'architecture':entry['architecture'],'scope':entry['scope'],
+                        'metrics':metrics(dataset,batch.y,prediction,loaded.metadata['training']['threshold']),
+                        'diagnostic':diagnostic,'predictions':filename,'sha256':digest(output/filename)}
+                evaluations.append(result)
+            print('EVALUATE',entry['id'],flush=True)
+        verify_freeze(root,output)
+        if verify_manifest(root)!=records:
+            raise DataError('Input identity changed')
+        write_json(output/'results.json',{'status':'completed','retrospective':True,'evaluations':evaluations,
+                                          'seconds':time.perf_counter()-started})
+        write_json(output/'completion.json',{'fits':len(plan['runs']),'evaluations':len(evaluations),'status':'completed'})
+        return evaluations
     except Exception as exc:
-        plan["status"] = "failed"
-        plan["error"] = f"{type(exc).__name__}: {exc}"
-        write_json(output / "plan.json", plan)
+        write_json(output/'failure.json',{'error':f'{type(exc).__name__}: {exc}'})
         raise
-    return plan
 
 
-def _write_metrics_table(plan, path):
-    rows = []
-    for run in plan["runs"]:
-        for evaluation in run["evaluations"]:
-            rows.append({**{k: run[k] for k in ("run_id", "dataset", "architecture", "scope", "seed")},
-                         "factory_id": evaluation["factory_id"], "split": evaluation["split"],
-                         "frozen_source": evaluation["frozen_source"], **evaluation["metrics"]})
-    columns = list(dict.fromkeys(key for row in rows for key in row))
-    with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=columns)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({key: json.dumps(value) if isinstance(value, (list, dict)) else value for key, value in row.items()})
+def verify_experiment(root,output):
+    verify_freeze(root,output)
+    results=json.loads((output/'results.json').read_text())
+    count=0
+    for row in results['evaluations']:
+        path=(output/row['predictions']).resolve()
+        if not path.is_relative_to(output.resolve()) or digest(path)!=row['sha256']:
+            raise DataError('Prediction artifact changed')
+        model=load_bundle(output/row['run'],expected_dataset=row['dataset'])
+        with np.load(path,allow_pickle=False) as arrays:
+            prediction=model.predict_raw(arrays['x'],model.metadata['features'],arrays['mask'] if 'mask' in arrays else None,client=row['source'])
+            np.testing.assert_array_equal(prediction,arrays['prediction'])
+            actual=metrics(row['dataset'],arrays['y'],prediction,model.metadata['training']['threshold'])
+            if actual!=row['metrics']:
+                raise DataError('Saved metrics differ from recomputation')
+        count+=1
+    record={'status':'passed','prediction_files':count,'models':len({r['run'] for r in results['evaluations']})}
+    write_json(output/'verification.json',record)
+    return record

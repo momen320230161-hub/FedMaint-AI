@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 01 data contracts and experimental protocol
 
 This phase implements data/backend foundations only. The academic brief motivates separate task definitions, non-IID simulated clients, client-local statistics, and an unseen factory. The exact defaults below are engineering/experimental choices for this phase, not prescriptions from the PDF or validated optimal hyperparameters. No model is trained, selected, or scored.

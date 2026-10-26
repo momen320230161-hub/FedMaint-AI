@@ -69,4 +69,4 @@ def test_config_rejects_ambiguous_boundaries_or_invalid_defaults():
         AzureConfig(history_hours=0)
     with pytest.raises(ValueError):
         AzureConfig(feature_groups=["unknown"])
-    assert PipelineConfig.load(ROOT / "configs/phase01.json").seed == 42
+    assert PipelineConfig.load(ROOT / "configs/v3_data.json").seed == 42

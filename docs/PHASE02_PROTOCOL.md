@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 02 models, selection, and evaluation protocol
 
 This is a fixed, bounded baseline experiment, not a search for state-of-the-art results. The academic brief requires local-only and pooled references before federation, separate classification/RUL tasks, and an unseen factory. All Phase 01 temporal, engine, raw-byte, and held-out rules remain in force. No model-selection rule below uses test/held-out observations. Defaults were fixed before the full experiment's evaluation stage.

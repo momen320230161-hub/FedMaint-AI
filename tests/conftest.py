@@ -30,7 +30,7 @@ def azure_data():
 
 @pytest.fixture
 def azure_config():
-    return AzureConfig(history_hours=3, horizon_hours=4, stride_hours=1,
+    return AzureConfig(feature_groups=("telemetry","errors","maintenance"), history_hours=3, horizon_hours=4, stride_hours=1,
                        train_end="2015-01-02T16:00:00", validation_end="2015-01-04T08:00:00")
 
 
@@ -48,5 +48,5 @@ def nasa_data():
 @pytest.fixture(scope="session")
 def prepared(tmp_path_factory):
     output = tmp_path_factory.mktemp("real-preparation")
-    config = PipelineConfig.load(ROOT / "configs/phase01.json")
+    config = PipelineConfig.load(ROOT / "configs/v3_data.json")
     return output, prepare(ROOT, config, output)

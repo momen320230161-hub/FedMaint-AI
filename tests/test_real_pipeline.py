@@ -57,7 +57,7 @@ def test_real_client_isolation_local_fit_and_finite_samples(prepared):
 
 def test_two_full_runs_are_reproducible(prepared, tmp_path):
     first_output, first = prepared
-    second = prepare(ROOT, PipelineConfig.load(ROOT / "configs/phase01.json"), tmp_path / "repeat")
+    second = prepare(ROOT, PipelineConfig.load(ROOT / "configs/v3_data.json"), tmp_path / "repeat")
     assert first == second  # Metadata includes split membership and numeric-array digests.
     for path in first_output.glob("*-preprocessor.json"):
         assert path.read_bytes() == (tmp_path / "repeat" / path.name).read_bytes()

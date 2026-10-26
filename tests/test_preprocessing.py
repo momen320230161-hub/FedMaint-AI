@@ -20,18 +20,18 @@ def fit(frame=None):
 
 def test_train_only_medians_constants_and_normalization():
     pre = fit()
-    assert pre.columns == ["feat_signal"]
+    assert pre.columns == ["feat_signal", "feat_constant", "feat_missing"]
     assert pre.dropped == ["feat_constant", "feat_missing"]
-    assert pre.medians.tolist() == [2]
-    assert pre.mean.tolist() == [2]
+    assert pre.medians.tolist() == [2, 5, 0]
+    assert pre.mean.tolist() == [2, 5, 0]
     np.testing.assert_allclose(pre.transform(training_frame()).mean(axis=0), 0, atol=1e-15)
-    np.testing.assert_allclose(pre.transform(training_frame()).std(axis=0), 1)
+    np.testing.assert_allclose(pre.transform(training_frame()).std(axis=0), [1, 0, 0])
 
 
 def test_adversarial_validation_and_held_out_values_do_not_affect_fit():
     pre = fit()
     mean, scale = pre.mean.copy(), pre.scale.copy()
-    unseen = pd.DataFrame({"feat_signal": [1e15, np.nan], "feat_constant": [1e20] * 2})
+    unseen = pd.DataFrame({"feat_signal": [1e15, np.nan], "feat_constant": [1e20] * 2, "feat_missing": [np.nan] * 2})
     transformed = pre.transform(unseen)
     assert transformed[0, 0] > 1e14
     assert transformed[1, 0] == 0

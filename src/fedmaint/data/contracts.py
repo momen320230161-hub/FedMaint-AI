@@ -20,7 +20,7 @@ class AzureConfig(StrictModel):
     validation_end: str = "2015-10-01T00:00:00"
     held_out_model: Literal["model1", "model2", "model3", "model4"] = "model4"
     feature_groups: tuple[Literal["telemetry", "metadata", "errors", "maintenance"], ...] = (
-        "telemetry", "errors", "maintenance"
+        "telemetry",
     )
 
     @model_validator(mode="after")

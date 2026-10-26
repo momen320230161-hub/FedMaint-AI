@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fedmaint"
-version = "0.1.0"
-description = "FedKG-Maint Phase 01 data and backend foundation"
+version = "0.3.0"
+description = "FedMaint-AI unified PyTorch predictive foundation"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "fastapi==0.115.8", "pydantic==2.10.6", "numpy==2.2.6",
   "pandas==2.2.3", "scikit-learn==1.6.1", "uvicorn==0.34.0",
-  "anyio==4.8.0",
+  "anyio==4.8.0", "torch==2.6.0",
 ]
 
 [project.optional-dependencies]

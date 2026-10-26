@@ -1,135 +1,137 @@
-"""Validated task/shape/provenance-aware model bundles for future backend use."""
-
-from dataclasses import dataclass
+"""Numeric-only checkpoints; private transformations are separate from neural state."""
 import json
-import zipfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
-
 import numpy as np
-from pydantic import Field, model_validator
-
-from fedmaint.data.contracts import DataError, StrictModel
-from fedmaint.data.integrity import sha256
-from fedmaint.data.preprocessing import LocalPreprocessor
-from .contracts import FeatureContract
-from .data import encode_input, transform_raw
-from .network import FrozenNetwork
-from .training import TrainingResult
-
-
-class BundleManifest(StrictModel):
-    schema_version: Literal[1] = 1
-    dataset: Literal["azure", "nasa"]
-    architecture: Literal["logistic", "mlp"]
-    scope: Literal["local", "centralized"]
-    seed: int = Field(ge=0)
-    contract: FeatureContract
-    fitted_factories: tuple[str, ...]
-    default_source: str
-    input_dimension: int = Field(ge=1)
-    rul_scale: float = Field(gt=0)
-    threshold: float | None = Field(default=None, ge=0, le=1)
-    weights_file: Literal["weights.npz"] = "weights.npz"
-    weights_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
-    transforms: dict[str, str]
-    transform_sha256: dict[str, str]
-    selection: dict
-    provenance: dict[str, str]
-
-    @model_validator(mode="after")
-    def validate_bundle_contract(self):
-        factories = set(self.fitted_factories)
-        if (self.contract.dataset != self.dataset or self.input_dimension != self.contract.input_dimension
-                or not factories or len(factories) != len(self.fitted_factories)
-                or not factories <= set(self.contract.training_factories) or self.default_source not in factories
-                or set(self.transforms) != factories or set(self.transform_sha256) != factories):
-            raise ValueError("Inconsistent model/preprocessing contract")
-        if (self.scope == "local" and len(factories) != 1) or (self.scope == "centralized" and factories != set(self.contract.training_factories)):
-            raise ValueError("Invalid local/centralized training membership")
-        if (self.dataset == "azure") != (self.threshold is not None):
-            raise ValueError("Only classification bundles require a threshold")
-        if self.dataset == "nasa" and self.architecture != "mlp":
-            raise ValueError("Unsupported NASA architecture")
-        return self
+import pandas as pd
+from fedmaint.common import digest, write_json, FEATURES
+from fedmaint.data.contracts import DataError
+from fedmaint.data.clients import TabularNormalizer, AZURE_CLIENTS, NASA_CLIENTS
+from fedmaint.data.normalization import LocalNormalizer
+from fedmaint.data.batches import Batch
+from .network import build_model, export_state, import_state, parameter_contract
+from .training import predict
 
 
-def _child(directory: Path, relative: str) -> Path:
-    path = (directory / relative).resolve()
-    if not path.is_relative_to(directory.resolve()) or path == directory.resolve():
-        raise DataError("Bundle path escapes artifact directory")
-    return path
+def validate_private(state, dataset, features, client):
+    if (state.get('features')!=list(features) or state.get('domain')!=client
+        or client not in (AZURE_CLIENTS if dataset=='azure' else NASA_CLIENTS)
+        or not isinstance(state.get('fit_rows'),int) or state['fit_rows']<=0):
+        raise DataError('Invalid private source/feature contract')
+    def stats(value):
+        if set(value)!= {'median','center','scale','informative'}:
+            raise DataError('Invalid statistics fields')
+        for key in value:
+            a=np.asarray(value[key])
+            if a.shape!=(len(features),) or (key=='informative' and a.dtype!=np.bool_) or (key!='informative' and not np.isfinite(a.astype(float)).all()):
+                raise DataError('Invalid private statistics')
+        if (np.asarray(value['scale'])<=0).any():
+            raise DataError('Invalid normalization scale')
+    stats(state['global'])
+    if dataset=='nasa':
+        if (state.get('kind') not in ('N0','N1','N2') or len(state.get('bin_resolution',[]))!=3
+            or not np.isfinite(state['bin_resolution']).all() or min(state['bin_resolution'])<=0
+            or not isinstance(state.get('min_bin_rows'),int) or state['min_bin_rows']<2):
+            raise DataError('Invalid condition-bin configuration')
+        for entry in state['bins'].values():
+            stats(entry['stats'])
+            if entry['rows']<state['min_bin_rows']:
+                raise DataError('Unsupported bin stored as supported')
+    elif state.get('kind')!='tabular':
+        raise DataError('Invalid tabular state')
 
 
-def save_bundle(directory: Path, result: TrainingResult, contract: FeatureContract, scope: str, seed: int,
-                fitted_factories: tuple[str, ...], states: dict[str, LocalPreprocessor], provenance: dict[str, str]):
-    directory.mkdir(parents=True, exist_ok=False)
-    network = result.network
-    network.validate(contract.input_dimension)
-    arrays = {f"weight_{i}": w for i, w in enumerate(network.weights)}
-    arrays.update({f"bias_{i}": b for i, b in enumerate(network.biases)})
-    np.savez_compressed(directory / "weights.npz", **arrays)
-    transforms, digests = {}, {}
-    for client in fitted_factories:
-        path = directory / f"transform-{client}.json"
-        states[client].save(path)
-        transforms[client], digests[client] = path.name, sha256(path)
-    source = fitted_factories[0] if scope == "local" else contract.source_factory
-    manifest = BundleManifest(dataset=contract.dataset, architecture=network.architecture, scope=scope, seed=seed,
-                              contract=contract, fitted_factories=fitted_factories, default_source=source,
-                              input_dimension=contract.input_dimension, rul_scale=network.rul_scale,
-                              threshold=result.threshold, weights_sha256=sha256(directory / "weights.npz"),
-                              transforms=transforms, transform_sha256=digests, selection=result.selection,
-                              provenance=provenance)
-    (directory / "model.json").write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
-    return manifest
+def save_bundle(directory, model, *, dataset, architecture, features, hidden, window,
+                states, source, training, config):
+    directory.mkdir(parents=True,exist_ok=False)
+    np.savez_compressed(directory/'weights.npz',**export_state(model))
+    private={}
+    for client,state in states.items():
+        filename=f'private-{client}.json'
+        write_json(directory/filename,state.state)
+        private[client]={'path':filename,'sha256':digest(directory/filename)}
+    metadata={'schema':3,'dataset':dataset,'architecture':architecture,'features':list(features),
+              'hidden':hidden,'window':window,'source':source,'private':private,
+              'weights_sha256':digest(directory/'weights.npz'),'training':training,
+              'config':config.model_dump(mode='json'),'parameter_contract':parameter_contract(model),
+              'postprocessing':'sigmoid' if dataset=='azure' else 'raw_linear_times_rul_scale'}
+    write_json(directory/'model.json',metadata)
 
 
 @dataclass
 class LoadedModel:
-    manifest: BundleManifest
-    network: FrozenNetwork
-    transforms: dict[str, LocalPreprocessor]
+    network: object
+    metadata: dict
+    states: dict
 
-    def predict_encoded(self, x):
-        if x.ndim != 2 or x.shape[1] != self.manifest.input_dimension:
-            raise DataError("Encoded input does not match saved model")
-        return self.network.predict(x)
+    def predict_raw(self, x, feature_names, mask=None, *, client=None):
+        meta=self.metadata
+        if list(feature_names)!=meta['features']:
+            raise DataError('Feature order differs from saved contract')
+        x=np.asarray(x,dtype=float)
+        dataset=meta['dataset']
+        source=meta['source'] if client is None else client
+        if source not in self.states:
+            raise DataError('No permitted frozen source transform')
+        normal=self.states[source]
+        if x.ndim not in (2,3) or x.shape[-1]!=len(feature_names) or len(x)==0:
+            raise DataError('Invalid input dimension or empty batch')
+        if dataset=='azure':
+            if x.ndim!=2 or mask is not None:
+                raise DataError('Azure requires tabular inputs')
+            normalized,_=normal.transform(pd.DataFrame(x,columns=feature_names))
+        else:
+            if (x.ndim!=3 or x.shape[1]!=meta['window'] or mask is None or mask.dtype!=np.bool_
+                or mask.shape!=x.shape[:2] or not mask[:,-1].all()
+                or (mask[:,:-1]&~mask[:,1:]).any()):
+                raise DataError('Invalid NASA mask or window')
+            normalized=np.zeros_like(x)
+            normalized[mask],_=normal.transform(pd.DataFrame(x[mask],columns=feature_names))
+        batch=Batch(normalized.astype(np.float32),np.zeros(len(x)),np.arange(len(x)).astype(str),
+                    np.repeat(source,len(x)),'inference',mask,np.zeros(len(x)) if mask is not None else None)
+        batch.require('inference',tuple(self.states))
+        return predict(self.network,batch,dataset,meta['config']['rul_scale'])
 
-    def predict_raw(self, x, features: list[str], mask=None, *, source_factory: str | None = None):
-        source = source_factory or self.manifest.default_source
-        if source not in self.transforms:
-            raise DataError("Requested source was not frozen into this model")
-        normalized = transform_raw(x, features, mask, self.transforms[source], self.manifest.contract)
-        return self.predict_encoded(encode_input(normalized, mask, self.manifest.contract))
 
-
-def load_bundle(directory: Path, *, expected_dataset: str | None = None) -> LoadedModel:
-    directory = directory.resolve()
+def load_bundle(directory, expected_dataset=None):
+    directory=Path(directory).resolve()
     try:
-        manifest = BundleManifest.model_validate_json((directory / "model.json").read_text(encoding="utf-8"))
-        if expected_dataset is not None and manifest.dataset != expected_dataset:
-            raise DataError("Model task differs from requested dataset")
-        weights_path = _child(directory, manifest.weights_file)
-        if sha256(weights_path) != manifest.weights_sha256:
-            raise DataError("Checkpoint hash mismatch")
-        layers = 1 if manifest.architecture == "logistic" else 2
-        with np.load(weights_path, allow_pickle=False) as archive:
-            if set(archive.files) != {f"{kind}_{i}" for kind in ("weight", "bias") for i in range(layers)}:
-                raise DataError("Invalid checkpoint keys")
-            network = FrozenNetwork(manifest.dataset, manifest.architecture,
-                                    [archive[f"weight_{i}"] for i in range(layers)],
-                                    [archive[f"bias_{i}"] for i in range(layers)], manifest.rul_scale)
-        network.validate(manifest.input_dimension)
-        states = {}
-        for client, relative in manifest.transforms.items():
-            path = _child(directory, relative)
-            if sha256(path) != manifest.transform_sha256[client]:
-                raise DataError("Frozen transform hash mismatch")
-            state = LocalPreprocessor.load(path)
-            if state.factory_id != client or not set(state.columns) <= set(manifest.contract.features):
-                raise DataError("Frozen transform identity/feature mismatch")
-            states[client] = state
-        return LoadedModel(manifest, network, states)
-    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile, EOFError) as exc:
-        raise DataError(f"Invalid model artifact: {exc}") from exc
+        meta=json.loads((directory/'model.json').read_text(encoding='utf-8'))
+        dataset=meta['dataset']
+        if (meta['schema']!=3 or dataset not in ('azure','nasa')
+            or expected_dataset not in (None,dataset)):
+            raise DataError('Artifact task/schema mismatch')
+        from .contracts import TrainingConfig
+        config=TrainingConfig.model_validate(meta['config'])
+        threshold=meta['training']['threshold']
+        if (dataset=='azure' and (not isinstance(threshold,(int,float)) or not np.isfinite(threshold) or not 0<=threshold<=1)) or (dataset=='nasa' and threshold is not None):
+            raise DataError('Invalid prediction threshold contract')
+        features=meta['features']
+        if (not features or len(set(features))!=len(features) or any(not f.startswith('feat_') for f in features)
+            or (dataset=='nasa' and features!=list(FEATURES))
+            or not isinstance(meta['hidden'],int) or not 1<=meta['hidden']<=4096
+            or not isinstance(meta['window'],int) or not 1<=meta['window']<=4096):
+            raise DataError('Invalid model dimensions/features')
+        if digest(directory/'weights.npz')!=meta['weights_sha256']:
+            raise DataError('Weight hash mismatch')
+        model=build_model(dataset,meta['architecture'],len(features),meta['hidden'],meta['window'])
+        with np.load(directory/'weights.npz',allow_pickle=False) as arrays:
+            import_state(model,{k:arrays[k] for k in arrays.files})
+        if parameter_contract(model)!=meta['parameter_contract']:
+            raise DataError('Parameter contract mismatch')
+        states={}
+        for client,record in meta['private'].items():
+            path=(directory/record['path']).resolve()
+            if not path.is_relative_to(directory) or digest(path)!=record['sha256']:
+                raise DataError('Private path/hash invalid')
+            state=json.loads(path.read_text(encoding='utf-8'))
+            validate_private(state,dataset,features,client)
+            obj=TabularNormalizer() if dataset=='azure' else LocalNormalizer(state['kind'],state)
+            obj.state=state
+            states[client]=obj
+        if meta['source'] not in states or set(states)!=set(meta['training']['membership']['train']['factories']):
+            raise DataError('Source/participant mismatch')
+        model.eval()
+        return LoadedModel(model,meta,states)
+    except (OSError,KeyError,TypeError,ValueError) as exc:
+        raise DataError(f'Invalid V3 artifact: {exc}') from exc

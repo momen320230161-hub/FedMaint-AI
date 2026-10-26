@@ -14,8 +14,8 @@ from fedmaint.data.prepare import prepare
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=ROOT / "configs/phase01.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "outputs/phase01")
+    parser.add_argument("--config", type=Path, default=ROOT / "configs/v3_data.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "outputs/v3/data")
     args = parser.parse_args()
     catalog = prepare(ROOT, PipelineConfig.load(args.config), args.output)
     print(json.dumps({"verified_files": sum(len(d["files"]) for d in catalog["datasets"]),

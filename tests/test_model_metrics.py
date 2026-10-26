@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from fedmaint.data.contracts import DataError
-from fedmaint.models.data import Batch
+from fedmaint.data.batches import Batch
 from fedmaint.models.metrics import classification_metrics, regression_metrics, validation_threshold
 
 
@@ -43,7 +43,7 @@ def test_nasa_overflow_retains_log_and_scientific_score_instead_of_infinity():
 
 def test_threshold_is_selected_only_from_permitted_validation():
     batch = Batch(np.zeros((4, 1)), np.array([0, 1, 0, 1]), np.array(["a", "b", "c", "d"]),
-                  np.repeat("client", 4), "validation", "digest")
+                  np.repeat("client", 4), "validation")
     assert validation_threshold(batch, np.array([.1, .4, .35, .8]), ("client",)) == .4
     for split in ("train", "test", "held_out"):
         batch.split = split

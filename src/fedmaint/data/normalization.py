@@ -3,7 +3,7 @@
 import numpy as np
 
 from fedmaint.data.contracts import DataError
-from .common import FEATURES, SETTINGS, write_json
+from fedmaint.common import FEATURES, SETTINGS, write_json
 
 
 def _statistics(x, kind):
@@ -31,7 +31,7 @@ class LocalNormalizer:
     def fit(self, frame, *, domain, permitted, split="train"):
         if domain not in permitted or domain == "FD004" or split != "train" or frame.empty:
             raise DataError("Normalization fit requires permitted source-client training rows")
-        if "domain" in frame and not frame.domain.eq(domain).all():
+        if ("domain" in frame and not frame.domain.eq(domain).all()) or ("split" in frame and not frame.split.eq("train").all()):
             raise DataError("Mixed-client normalization fit")
         x = frame[list(FEATURES)].to_numpy(float)
         if np.isinf(x).any():

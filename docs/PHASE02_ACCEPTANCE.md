@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 02 acceptance evidence
 
 Date: 2026-10-21. Status: **complete locally on the existing main branch**. Codex implemented, reviewed, and tested directly. No external implementer, branch creation, global configuration change, raw-data/manifest change, commit, push, or Phase 03 implementation occurred.
@@ -13,7 +15,7 @@ Phase 01 data code, tests, input bytes, manifest, and prepared artifacts were no
 
 ## Exact training configuration and results
 
-The frozen config is [configs/phase02.json](../configs/phase02.json): hidden width 32, batch size 128, MLP epoch cap 40 per candidate, patience 6, learning rates 0.001/0.003, alpha 0.0001, logistic C 0.1/1/10, Newton–Cholesky maximum 2,000 iterations, and fixed 100-cycle RUL optimization scale. No class reweighting or resampling was used. Candidate/checkpoint selection uses validation AP (Azure) or negative uncapped validation-window RMSE (NASA). Azure thresholds use validation maximum F1 with a deterministic tie-break. All model choices finish before opening test/held-out arrays. NASA capped training `y` remains supported separately from uncapped evaluation `raw_y`; this experiment used uncapped training inputs.
+The frozen config is [configs/phase02.json](https://github.com/momen320230161-hub/FedMaint-AI/blob/f6a4e8e4cdc276c65f76a42286428626beb2c0f2/configs/phase02.json): hidden width 32, batch size 128, MLP epoch cap 40 per candidate, patience 6, learning rates 0.001/0.003, alpha 0.0001, logistic C 0.1/1/10, Newton–Cholesky maximum 2,000 iterations, and fixed 100-cycle RUL optimization scale. No class reweighting or resampling was used. Candidate/checkpoint selection uses validation AP (Azure) or negative uncapped validation-window RMSE (NASA). Azure thresholds use validation maximum F1 with a deterministic tie-break. All model choices finish before opening test/held-out arrays. NASA capped training `y` remains supported separately from uncapped evaluation `raw_y`; this experiment used uncapped training inputs.
 
 All planned runs completed, with **0 failed or skipped full-budget runs**. Wall runtime was **71.34 s**, with **51.99 s** summed candidate fitting/selection. Exact selected candidates, epochs, thresholds, per-run timings, every metric, and mean ± sample SD are in [PHASE02_RESULTS.md](PHASE02_RESULTS.md), generated directly from the saved plan. Local/centralized models use matched per-record exposure/selection budgets; centralized models visit more total records and are not claimed to have identical FLOPs or wall time.
 

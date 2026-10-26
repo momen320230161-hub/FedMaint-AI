@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 01 acceptance evidence
 
 Date: 2026-10-21. Repository: `FedMaint-AI`, existing `main` branch. Status: **complete locally**. Codex implemented, reviewed, and tested directly. No external implementer, branch creation, commit, push, global configuration change, or Phase 02 work occurred.

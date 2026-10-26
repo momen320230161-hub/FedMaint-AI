@@ -8,7 +8,7 @@ from sklearn.metrics import (auc, average_precision_score, confusion_matrix, f1_
                              precision_recall_curve, precision_score, recall_score, roc_auc_score)
 
 from fedmaint.data.contracts import DataError
-from .data import Batch
+from fedmaint.data.batches import Batch
 
 
 def _vectors(y, prediction):

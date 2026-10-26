@@ -8,7 +8,7 @@ import pandas as pd
 
 from fedmaint.data.contracts import DataError
 from fedmaint.data.nasa import COLUMNS, engine_split, validate_trajectory
-from .common import DOMAINS, FEATURES, digest
+from fedmaint.common import DOMAINS, FEATURES, digest
 
 
 @dataclass
@@ -76,7 +76,7 @@ class NasaStore:
         train_ids, val_ids = engine_split(frame.engine_id, 42, .2)
         return frame.loc[frame.engine_id.isin(train_ids)], frame.loc[frame.engine_id.isin(val_ids)]
 
-    def windows(self, frame, normalizer, split, *, prefixes=False, terminal=False):
+    def windows(self, frame, normalizer, split, *, prefixes=False, terminal=False, dtype=np.float32):
         normalized, diagnostic = normalizer.transform(frame)
         work = frame.reset_index(drop=True)
         xs, masks, ys, keys, cycles, domains = [], [], [], [], [], []
@@ -91,7 +91,7 @@ class NasaStore:
                 positions = range(length-1, len(indices), self.config["stride"])
             for pos in positions:
                 valid = indices[max(0, pos-length+1):pos+1]
-                x = np.zeros((length, len(FEATURES)), np.float32)
+                x = np.zeros((length, len(FEATURES)), dtype)
                 x[-len(valid):] = normalized[valid]
                 mask = np.arange(length) >= length-len(valid)
                 row = group.iloc[pos]

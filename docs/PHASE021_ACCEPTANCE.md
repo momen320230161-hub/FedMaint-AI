@@ -1,3 +1,5 @@
+> Historical research record. Commands, code paths and measurements below refer to the pre-V3 revision `f6a4e8e4cdc276c65f76a42286428626beb2c0f2`. Current implementation and protocols: [Architecture V3](ARCHITECTURE_V3.md), [data](V3_DATA_PROTOCOL.md), [experiments](V3_EXPERIMENT_PROTOCOL.md). Historical outputs remain preserved.
+
 # Phase 02.1 execution and acceptance evidence
 
 Date: 2026-10-23. Engineering implementation and the bounded experiments are complete locally on the existing `main` branch. Codex implemented, reviewed and tested directly. Changes remain uncommitted; nothing was pushed. Phase 03, FedAvg/FedProx, privacy mechanisms, KG, LLM and UI were not started.
