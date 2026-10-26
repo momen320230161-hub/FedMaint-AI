@@ -1,0 +1,21 @@
+{
+  "seeds": [42, 43],
+  "normalizers": ["N0", "N1", "N2"],
+  "architectures": ["mlp", "gru"],
+  "domains": ["FD001", "FD002", "FD003"],
+  "prefix_cycles": [50, 100],
+  "window": 30,
+  "stride": 10,
+  "hidden": 32,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "alpha": 0.0001,
+  "rul_scale": 100.0,
+  "epochs": 40,
+  "patience": 6,
+  "bin_resolution": [1.0, 0.1, 1.0],
+  "min_bin_rows": 128,
+  "fit_limit": 69,
+  "training_seconds_limit": 2700,
+  "postprocessing": "raw_primary_zero_floor_diagnostic"
+}
